@@ -1,0 +1,92 @@
+[gd_scene format=3 uid="uid://bbi26u151p7f5"]
+
+[ext_resource type="Script" uid="uid://fc1cy0cxkrfc" path="res://crt_monitor.gd" id="1_crtmon"]
+[ext_resource type="PackedScene" uid="uid://c6i3pqbd1foow" path="res://assets/models/monitor crt panel.glb" id="2_h2yge"]
+[ext_resource type="PackedScene" uid="uid://cb304jlqhm8ba" path="res://assets/models/monitor crt carcasa.glb" id="3_1bvp3"]
+[ext_resource type="Script" uid="uid://cxeqor0tj1tcl" path="res://pixel_display.gd" id="4_1bvp3"]
+[ext_resource type="Script" uid="uid://cpure5xwb8iym" path="res://black_hole.gd" id="4_lquwl"]
+[ext_resource type="Script" uid="uid://dni6gr254ibpp" path="res://pixel_viewport.gd" id="5_pxvpw"]
+[ext_resource type="Shader" uid="uid://bpms1g08qa78s" path="res://pixel_quantize.gdshader" id="6_pxqnt"]
+[ext_resource type="Script" uid="uid://bngntis3s88o0" path="res://debug_orbit.gd" id="7_dbgorb"]
+[ext_resource type="Script" uid="uid://eumcdrupd1ax" path="res://look_illusion.gd" id="8_lookill"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_b1q74"]
+size = Vector3(2.4763794, 1.9730225, 0.56921387)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_pxqnt"]
+shader = ExtResource("6_pxqnt")
+shader_parameter/color_steps = 16
+shader_parameter/dither_strength = 0.400000019
+shader_parameter/dither_pattern = 8
+shader_parameter/dither_scale = 1
+shader_parameter/saturation = 1.3
+shader_parameter/contrast = 1.45
+shader_parameter/black_level = 0.02
+
+[node name="Node3D" type="Node3D" unique_id=1167807598]
+
+[node name="PixelViewport" type="SubViewport" parent="." unique_id=1916504458]
+size = Vector2i(320, 180)
+script = ExtResource("5_pxvpw")
+
+[node name="Camera3D" type="Camera3D" parent="PixelViewport" unique_id=642857347]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.5282243)
+
+[node name="StaticBody3D" type="StaticBody3D" parent="PixelViewport" unique_id=1434012075 node_paths=PackedStringArray("look_illusion", "screen_light")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.0468793)
+script = ExtResource("1_crtmon")
+look_illusion = NodePath("LookIllusion")
+screen_light = NodePath("ScreenGlow")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="PixelViewport/StaticBody3D" unique_id=1726541350]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0101623535, -0.004211426, 0.6836548)
+shape = SubResource("BoxShape3D_b1q74")
+
+[node name="monitor crt panel" parent="PixelViewport/StaticBody3D" unique_id=520681704 instance=ExtResource("2_h2yge")]
+
+[node name="monitor crt carcasa" parent="PixelViewport/StaticBody3D" unique_id=810650586 instance=ExtResource("3_1bvp3")]
+
+[node name="ScreenGlow" type="OmniLight3D" parent="PixelViewport/StaticBody3D" unique_id=1169002987]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.4)
+light_energy = 0.5
+omni_range = 2.5
+
+[node name="LookIllusion" type="Node" parent="PixelViewport/StaticBody3D" unique_id=1502951465 node_paths=PackedStringArray("camera")]
+script = ExtResource("8_lookill")
+camera = NodePath("../../Camera3D")
+
+[node name="AreaLight3D" type="AreaLight3D" parent="PixelViewport" unique_id=1571313431]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.371)
+light_energy = 0.1
+light_size = 0.25
+
+[node name="BlackHole" type="Node3D" parent="PixelViewport" unique_id=1432513658]
+transform = Transform3D(0.76007265, -0.6295103, 0.161267, 0.5337187, 0.74630046, 0.3977202, -0.3707222, -0.21622488, 0.9032235, -0.0043955445, 0.036765844, 0.53594434)
+visible = false
+script = ExtResource("4_lquwl")
+sphere_radius = 0.05
+disc_radius = 0.7
+disc_brightness = 2.0
+disc_opacity = 0.4
+disc_thickness_ratio = 0.05
+doppler_strength = 0.3
+turbulence = 1.0
+spiral_tightness = -6.595
+swirl_speed = 1.13
+ring_contrast = 0.09
+ring_count = 1.0
+filament_flatten = 0.0
+filament_width = 0.1
+filament_contrast = 0.5
+
+[node name="Display" type="TextureRect" parent="." unique_id=1171642044 node_paths=PackedStringArray("pixel_viewport")]
+texture_filter = 1
+material = SubResource("ShaderMaterial_pxqnt")
+offset_right = 320.0
+offset_bottom = 180.0
+script = ExtResource("4_1bvp3")
+pixel_viewport = NodePath("../PixelViewport")
+
+[node name="DebugOrbit" type="Node" parent="." unique_id=30268992 node_paths=PackedStringArray("target")]
+script = ExtResource("7_dbgorb")
+target = NodePath("../PixelViewport/BlackHole")

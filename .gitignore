@@ -1,0 +1,20 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# Builds exportados (Web / PC): se generan, no se versionan
+/builds/
+*.pck
+*.exe
+*.zip
+
+# Contiene claves/contrasenas de exportacion si algun dia se usan
+export_credentials.cfg
+
+# Backups de Blender
+*.blend1
+*.blend2
+
+# Sistema
+.DS_Store
+Thumbs.db
