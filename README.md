@@ -1,15 +1,15 @@
 # AN∅MALY
 
-Proyecto en Godot 4.7 (renderer Compatibility) con estetica pixel art.
+A Godot 4.7 project (Compatibility renderer) with a pixel art look.
 
-- Monitor CRT con terminal de arranque y boton *INITIALIZE SYSTEMS*.
-- Agujero negro con lente gravitacional por raymarching, ajustable en tiempo real.
+- CRT monitor with a boot terminal and an *INITIALIZE SYSTEMS* button.
+- Black hole with raymarched gravitational lensing, tweakable at runtime.
 
-## Abrir
+## Opening the project
 
-Godot **4.7.2**: *Import* → seleccionar `project.godot`.
+Godot **4.7.2**: *Import* → select `project.godot`.
 
-## Exportar
+## Exporting
 
-Requiere las plantillas de exportacion de Godot 4.7.2
-(*Editor → Manage Export Templates*). Los builds van a `builds/`, que no se versiona.
+Requires the Godot 4.7.2 export templates
+(*Editor → Manage Export Templates*). Builds go to `builds/`, which is not tracked.
