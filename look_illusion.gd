@@ -15,6 +15,7 @@ extends Node
 #   - Arranque y frenada suaves, un leve pasarse de largo y asentarse.
 #   - Un poco de inclinacion lateral durante el gesto.
 
+## Se emite al terminar play() o play_back().
 signal finished
 
 ## Objeto a mover. Vacio = el padre de este nodo.
@@ -34,14 +35,19 @@ signal finished
 @export var roll_degrees: float = 2.0
 ## Pivote del cuello en coordenadas locales de la camara.
 @export var neck_offset: Vector3 = Vector3(0.0, -0.35, 0.25)
-## Ocultar el target al terminar (ya esta fuera de cuadro; asi tampoco
-## atraviesa geometria del escenario que quede por debajo).
+## Ocultar el target al terminar play() (ya esta fuera de cuadro; asi tampoco
+## atraviesa geometria del escenario que quede por debajo). play_back() lo
+## vuelve a mostrar.
 @export var hide_when_done: bool = true
 
 var _rest: Transform3D
 var _pitch: float = 0.0
 var _roll: float = 0.0
 var _playing: bool = false
+## true mientras el target esta fuera de cuadro (tras play, antes de play_back).
+var _away: bool = false
+## Angulo alcanzado en play(); play_back() vuelve desde ahi.
+var _goal: float = 0.0
 
 func _ready() -> void:
 	if target == null:
@@ -63,34 +69,58 @@ func _head(pitch: float, roll: float) -> Transform3D:
 		* Transform3D(rot, Vector3.ZERO) \
 		* Transform3D(Basis.IDENTITY, -neck_offset)
 
+## Levanta la mirada: el target sale de cuadro por abajo.
 func play() -> void:
-	if _playing or target == null or camera == null:
+	if _playing or _away or target == null or camera == null:
 		return
-	_playing = true
 	_rest = target.global_transform
 	_pitch = 0.0
-	_roll = 0.0
-	set_process(true)
-
 	var target_deg := look_up_degrees
 	if target_deg <= 0.0:
 		target_deg = _angle_to_clear() + look_margin_degrees
-	var goal := deg_to_rad(minf(target_deg, 85.0))
-	var peak := minf(goal * (1.0 + overshoot), deg_to_rad(88.0))
-	var dip := -deg_to_rad(anticipation_degrees)
+	_goal = deg_to_rad(minf(target_deg, 85.0))
+	await _animate(0.0, _goal, 1.0)
+	_away = true
+	if hide_when_done:
+		target.visible = false
+	finished.emit()
+
+## Baja la mirada de vuelta: el target vuelve exactamente a donde estaba.
+func play_back() -> void:
+	if _playing or not _away or target == null or camera == null:
+		return
+	target.visible = true
+	await _animate(_goal, 0.0, -1.0)
+	_away = false
+	target.global_transform = _rest
+	finished.emit()
+
+## Anticipacion en contra del movimiento, recorrido principal, pasarse un poco
+## y asentarse. roll_sign alterna el lado de la inclinacion lateral.
+func _animate(from: float, to: float, roll_sign: float) -> void:
+	_playing = true
+	_pitch = from
+	_roll = 0.0
+	set_process(true)
+
+	var dir := signf(to - from)
+	var dip := from - dir * deg_to_rad(anticipation_degrees)
+	var peak := clampf(to + dir * absf(to - from) * overshoot,
+		deg_to_rad(-10.0), deg_to_rad(88.0))
 
 	var t := create_tween()
 	t.tween_property(self, "_pitch", dip, anticipation_time) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	t.tween_property(self, "_pitch", peak, duration) \
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-	t.tween_property(self, "_pitch", goal, settle_time) \
+	t.tween_property(self, "_pitch", to, settle_time) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 	# Inclinacion lateral: sube y vuelve a cero durante el movimiento principal.
 	var r := create_tween()
 	r.tween_interval(anticipation_time)
-	r.tween_method(func(k: float) -> void: _roll = sin(k * PI) * deg_to_rad(roll_degrees),
+	r.tween_method(func(k: float) -> void:
+			_roll = sin(k * PI) * deg_to_rad(roll_degrees) * roll_sign,
 		0.0, 1.0, duration + settle_time * 0.5)
 
 	await t.finished
@@ -98,10 +128,7 @@ func play() -> void:
 		await r.finished
 	_apply()
 	set_process(false)
-	if hide_when_done:
-		target.visible = false
 	_playing = false
-	finished.emit()
 
 ## Menor angulo (grados) con el que todos los vertices del target quedan por
 ## debajo del borde inferior del cuadro, contando el desplazamiento del cuello.

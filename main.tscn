@@ -9,9 +9,35 @@
 [ext_resource type="Shader" uid="uid://bpms1g08qa78s" path="res://pixel_quantize.gdshader" id="6_pxqnt"]
 [ext_resource type="Script" uid="uid://bngntis3s88o0" path="res://debug_orbit.gd" id="7_dbgorb"]
 [ext_resource type="Script" uid="uid://eumcdrupd1ax" path="res://look_illusion.gd" id="8_lookill"]
+[ext_resource type="Script" uid="uid://dp05iweky3n3y" path="res://main_menu.gd" id="9_menu"]
+[ext_resource type="Shader" uid="uid://ce8cnyovo2nja" path="res://dither_reveal.gdshader" id="9_ycdy4"]
+[ext_resource type="Texture2D" uid="uid://cj0sljbnygniw" path="res://assets/ANOMALY pixel.png" id="10_title"]
+[ext_resource type="Script" uid="uid://b5s71gyrkc5cl" path="res://menu_button.gd" id="11_mbtn"]
+[ext_resource type="Script" uid="uid://dnf2cdsogbq3k" path="res://game_settings.gd" id="12_settings"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_b1q74"]
 size = Vector3(2.4763794, 1.9730225, 0.56921387)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_w48qg"]
+shader = ExtResource("9_ycdy4")
+shader_parameter/progress = 1.0
+shader_parameter/edge_color = Color(1, 0.55, 0.15, 1)
+shader_parameter/edge_width = 0.12
+shader_parameter/noise_mix = 0.35
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vivmo"]
+shader = ExtResource("9_ycdy4")
+shader_parameter/progress = 1.0
+shader_parameter/edge_color = Color(1, 0.55, 0.15, 1)
+shader_parameter/edge_width = 0.12
+shader_parameter/noise_mix = 0.35
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_2cqfq"]
+shader = ExtResource("9_ycdy4")
+shader_parameter/progress = 1.0
+shader_parameter/edge_color = Color(1, 0.55, 0.15, 1)
+shader_parameter/edge_width = 0.12
+shader_parameter/noise_mix = 0.35
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_pxqnt"]
 shader = ExtResource("6_pxqnt")
@@ -25,6 +51,9 @@ shader_parameter/black_level = 0.02
 
 [node name="Node3D" type="Node3D" unique_id=1167807598]
 
+[node name="GameSettings" type="Node" parent="." unique_id=550095351]
+script = ExtResource("12_settings")
+
 [node name="PixelViewport" type="SubViewport" parent="." unique_id=1916504458]
 size = Vector2i(320, 180)
 script = ExtResource("5_pxvpw")
@@ -32,10 +61,11 @@ script = ExtResource("5_pxvpw")
 [node name="Camera3D" type="Camera3D" parent="PixelViewport" unique_id=642857347]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.5282243)
 
-[node name="StaticBody3D" type="StaticBody3D" parent="PixelViewport" unique_id=1434012075 node_paths=PackedStringArray("look_illusion", "screen_light")]
+[node name="StaticBody3D" type="StaticBody3D" parent="PixelViewport" unique_id=1434012075 node_paths=PackedStringArray("look_illusion", "settings", "screen_light")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.0468793)
 script = ExtResource("1_crtmon")
 look_illusion = NodePath("LookIllusion")
+settings = NodePath("../../GameSettings")
 screen_light = NodePath("ScreenGlow")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="PixelViewport/StaticBody3D" unique_id=1726541350]
@@ -49,7 +79,7 @@ shape = SubResource("BoxShape3D_b1q74")
 [node name="ScreenGlow" type="OmniLight3D" parent="PixelViewport/StaticBody3D" unique_id=1169002987]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.4)
 light_energy = 0.5
-omni_range = 2.5
+omni_range = 2.0
 
 [node name="LookIllusion" type="Node" parent="PixelViewport/StaticBody3D" unique_id=1502951465 node_paths=PackedStringArray("camera")]
 script = ExtResource("8_lookill")
@@ -79,6 +109,42 @@ filament_flatten = 0.0
 filament_width = 0.1
 filament_contrast = 0.5
 
+[node name="MenuLayer" type="CanvasLayer" parent="PixelViewport" unique_id=1652001731]
+
+[node name="MainMenu" type="Control" parent="PixelViewport/MenuLayer" unique_id=1040040346]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("9_menu")
+title_texture = ExtResource("10_title")
+
+[node name="Title" type="TextureRect" parent="PixelViewport/MenuLayer/MainMenu" unique_id=177582296]
+layout_mode = 0
+mouse_filter = 2
+
+[node name="EnterButton" type="Control" parent="PixelViewport/MenuLayer/MainMenu" unique_id=524858916]
+material = SubResource("ShaderMaterial_w48qg")
+anchors_preset = 0
+script = ExtResource("11_mbtn")
+text = "ENTER THE ANOMALY"
+primary = true
+
+[node name="SettingsButton" type="Control" parent="PixelViewport/MenuLayer/MainMenu" unique_id=2007402038]
+material = SubResource("ShaderMaterial_vivmo")
+anchors_preset = 0
+script = ExtResource("11_mbtn")
+text = "SETTINGS"
+
+[node name="EndingsButton" type="Control" parent="PixelViewport/MenuLayer/MainMenu" unique_id=557575847]
+material = SubResource("ShaderMaterial_2cqfq")
+anchors_preset = 0
+script = ExtResource("11_mbtn")
+text = "ENDINGS"
+
 [node name="Display" type="TextureRect" parent="." unique_id=1171642044 node_paths=PackedStringArray("pixel_viewport")]
 texture_filter = 1
 material = SubResource("ShaderMaterial_pxqnt")
@@ -90,3 +156,6 @@ pixel_viewport = NodePath("../PixelViewport")
 [node name="DebugOrbit" type="Node" parent="." unique_id=30268992 node_paths=PackedStringArray("target")]
 script = ExtResource("7_dbgorb")
 target = NodePath("../PixelViewport/BlackHole")
+
+[connection signal="view_cleared" from="PixelViewport/StaticBody3D" to="PixelViewport/MenuLayer/MainMenu" method="appear"]
+[connection signal="settings_pressed" from="PixelViewport/MenuLayer/MainMenu" to="PixelViewport/StaticBody3D" method="open_settings"]

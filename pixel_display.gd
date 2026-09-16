@@ -10,10 +10,17 @@ extends TextureRect
 ## Resolucion interna objetivo. En modo fill_window solo manda la altura.
 @export var base_size: Vector2i = Vector2i(320, 180)
 
-## Si esta activo, la resolucion interna crece hasta cubrir la ventana entera
-## manteniendo el pixel cuadrado (sin barras negras, se ve un pelin mas de
-## escena). Si no, se fija a base_size y se centra con barras.
+## Si esta activo, el ANCHO interno crece hasta cubrir la ventana (pixel
+## cuadrado, sin barras laterales). Si no, se fija a base_size y se centra.
 @export var fill_window: bool = true
+
+# La ALTURA interna es siempre base_size.y, en cualquier modo. La camara
+# mantiene el FOV vertical, asi que el tamano en pixeles de todo lo que se ve
+# depende solo de esa altura: la pantalla del CRT (180x136 texels) mide 1:1
+# en la escena solo si hay exactamente 180 filas. Si la escala entera no cuadra
+# con la ventana (p. ej. 1004 px de alto -> 5.58x), se redondea y el sobrante
+# se recorta arriba/abajo (o quedan franjas finas), en vez de cambiar de
+# resolucion y que la textura pierda filas.
 
 var _scale: int = 1
 var _hovered: Object
@@ -39,13 +46,9 @@ func _update_layout() -> void:
 
 	_scale = maxi(1, int(round(float(win.y) / float(base_size.y))))
 
-	var vp_size: Vector2i
+	var vp_size: Vector2i = base_size
 	if fill_window:
-		vp_size = Vector2i(
-			ceili(float(win.x) / float(_scale)),
-			ceili(float(win.y) / float(_scale)))
-	else:
-		vp_size = base_size
+		vp_size.x = ceili(float(win.x) / float(_scale))
 
 	if pixel_viewport.size != vp_size:
 		pixel_viewport.size = vp_size
@@ -56,19 +59,56 @@ func _update_layout() -> void:
 	size = Vector2(rect)
 
 func _gui_input(event: InputEvent) -> void:
+	if not event is InputEventMouse:
+		return
+	# Primero la UI que vive dentro del viewport pixelado (menu). Si la consume,
+	# no se lanza el rayo 3D.
+	if _forward_to_viewport(event):
+		if event is InputEventMouseMotion:
+			_set_hovered(null, Vector3.ZERO)
+		return
+
 	if event is InputEventMouseMotion:
 		_update_hover(event.position)
 		return
-	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
+	if not (event is InputEventMouseButton and event.pressed):
 		return
 
-	var result := _pick(event.position)
-	if result and result.collider.has_method("on_clicked"):
-		result.collider.on_clicked(result.position)
+	match event.button_index:
+		MOUSE_BUTTON_LEFT:
+			var result := _pick(event.position)
+			if result and result.collider.has_method("on_clicked"):
+				result.collider.on_clicked(result.position)
+		MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN:
+			var result := _pick(event.position)
+			if result and result.collider.has_method("on_wheel"):
+				var direction := 1 if event.button_index == MOUSE_BUTTON_WHEEL_UP else -1
+				result.collider.on_wheel(result.position, direction)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_MOUSE_EXIT:
 		_set_hovered(null, Vector3.ZERO)
+		# Mover el puntero "fuera" del viewport para que los botones suelten el hover.
+		var away := InputEventMouseMotion.new()
+		away.position = Vector2(-1000, -1000)
+		away.global_position = away.position
+		pixel_viewport.push_input(away, true)
+
+## Reenvia el evento al SubViewport en sus coordenadas (texels). Devuelve true
+## si el puntero esta sobre un Control de ese viewport.
+##
+## No sirve is_input_handled(): con physics_object_picking activo, Godot marca
+## como "handled" todo evento de mouse que entra al viewport (lo encola para el
+## picking), haya UI debajo o no, y el rayo al CRT nunca se lanzaria.
+func _forward_to_viewport(event: InputEventMouse) -> bool:
+	var local := event.duplicate() as InputEventMouse
+	local.position = event.position / float(_scale)
+	local.global_position = local.position
+	if local is InputEventMouseMotion:
+		local.relative = event.relative / float(_scale)
+		local.screen_relative = event.screen_relative
+	pixel_viewport.push_input(local, true)
+	return pixel_viewport.gui_get_hovered_control() != null
 
 ## Avisa al objeto bajo el puntero (on_pointer_move) y al que se deja atras
 ## (on_pointer_exit). Ambos metodos son opcionales en el collider.
@@ -80,7 +120,8 @@ func _update_hover(screen_position: Vector2) -> void:
 		_set_hovered(null, Vector3.ZERO)
 
 func _set_hovered(collider: Object, hit_position: Vector3) -> void:
-	if collider != _hovered and is_instance_valid(_hovered) 			and _hovered.has_method("on_pointer_exit"):
+	if collider != _hovered and is_instance_valid(_hovered) \
+			and _hovered.has_method("on_pointer_exit"):
 		_hovered.on_pointer_exit()
 	_hovered = collider
 	if collider and collider.has_method("on_pointer_move"):
@@ -91,7 +132,8 @@ func _pick(screen_position: Vector2) -> Dictionary:
 	# Una sola division: el mapeo no puede desincronizarse del dibujado.
 	var mapped_position: Vector2 = screen_position / float(_scale)
 	var viewport_size := Vector2(pixel_viewport.size)
-	if mapped_position.x < 0.0 or mapped_position.y < 0.0 			or mapped_position.x >= viewport_size.x or mapped_position.y >= viewport_size.y:
+	if mapped_position.x < 0.0 or mapped_position.y < 0.0 \
+			or mapped_position.x >= viewport_size.x or mapped_position.y >= viewport_size.y:
 		return {}
 
 	var camera := pixel_viewport.get_camera_3d()
