@@ -11,9 +11,13 @@ extends Control
 #
 # Las zonas clicables se registran al dibujar (_hits: id -> Rect2i). El monitor
 # pasa el pixel del puntero a hover()/click()/wheel(); click() devuelve la
-# accion que el monitor debe ejecutar ("initialize", "back") o "".
+# accion que el monitor debe ejecutar ("initialize", "back"), "changed" si
+# modifico un ajuste, o "".
 
 signal page_ready
+## Cada paso impreso durante una secuencia (para el sonido de tecleo).
+## op: L/A/R/S (ver start_boot); text: lo que se imprimio.
+signal step_printed(op: String, text: String)
 
 const PixelFont = preload("res://pixel_font.gd")
 
@@ -144,6 +148,7 @@ func _run_steps(steps: Array) -> void:
 			await get_tree().create_timer(step[0]).timeout
 		_apply_step(step[1], step[2], step[3])
 		queue_redraw()
+		step_printed.emit(step[1], step[2])
 	phase = Phase.BLANK
 	queue_redraw()
 	await get_tree().create_timer(0.12).timeout
@@ -217,16 +222,20 @@ func click(px: Vector2i) -> String:
 			value = 0
 		settings.set_value(id, value)
 	_saved_flash = 0.9
-	return ""
+	return "changed"
 
-## Rueda sobre una fila de volumen: +-1.
-func wheel(px: Vector2i, direction: int) -> void:
+## Rueda sobre una fila de volumen: +-1. Devuelve true si el valor cambio.
+func wheel(px: Vector2i, direction: int) -> bool:
 	var id := hit_test(px)
 	var row := _row(id)
 	if row.is_empty() or row.kind != "level" or settings == null:
-		return
-	settings.set_value(id, int(settings.get_value(id)) + direction)
+		return false
+	var before: int = settings.get_value(id)
+	settings.set_value(id, before + direction)
+	if int(settings.get_value(id)) == before:
+		return false
 	_saved_flash = 0.9
+	return true
 
 func _row(id: String) -> Dictionary:
 	for r in SETTING_ROWS:

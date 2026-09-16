@@ -14,6 +14,9 @@
 [ext_resource type="Texture2D" uid="uid://cj0sljbnygniw" path="res://assets/ANOMALY pixel.png" id="10_title"]
 [ext_resource type="Script" uid="uid://b5s71gyrkc5cl" path="res://menu_button.gd" id="11_mbtn"]
 [ext_resource type="Script" uid="uid://dnf2cdsogbq3k" path="res://game_settings.gd" id="12_settings"]
+[ext_resource type="Script" uid="uid://bu31vlkvi6lqj" path="res://sfx.gd" id="13_sfx"]
+[ext_resource type="Script" path="res://music.gd" id="14_music"]
+[ext_resource type="AudioStream" uid="uid://ditwhfs0iggmy" path="res://assets/MenuMusic.ogg" id="15_menumusic"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_b1q74"]
 size = Vector3(2.4763794, 1.9730225, 0.56921387)
@@ -54,6 +57,13 @@ shader_parameter/black_level = 0.02
 [node name="GameSettings" type="Node" parent="." unique_id=550095351]
 script = ExtResource("12_settings")
 
+[node name="Sfx" type="Node" parent="." unique_id=1350970948]
+script = ExtResource("13_sfx")
+
+[node name="Music" type="Node" parent="."]
+script = ExtResource("14_music")
+stream = ExtResource("15_menumusic")
+
 [node name="PixelViewport" type="SubViewport" parent="." unique_id=1916504458]
 size = Vector2i(320, 180)
 script = ExtResource("5_pxvpw")
@@ -61,11 +71,12 @@ script = ExtResource("5_pxvpw")
 [node name="Camera3D" type="Camera3D" parent="PixelViewport" unique_id=642857347]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.5282243)
 
-[node name="StaticBody3D" type="StaticBody3D" parent="PixelViewport" unique_id=1434012075 node_paths=PackedStringArray("look_illusion", "settings", "screen_light")]
+[node name="StaticBody3D" type="StaticBody3D" parent="PixelViewport" unique_id=1434012075 node_paths=PackedStringArray("look_illusion", "settings", "sfx", "screen_light")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.0468793)
 script = ExtResource("1_crtmon")
 look_illusion = NodePath("LookIllusion")
 settings = NodePath("../../GameSettings")
+sfx = NodePath("../../Sfx")
 screen_light = NodePath("ScreenGlow")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="PixelViewport/StaticBody3D" unique_id=1726541350]
@@ -111,7 +122,7 @@ filament_contrast = 0.5
 
 [node name="MenuLayer" type="CanvasLayer" parent="PixelViewport" unique_id=1652001731]
 
-[node name="MainMenu" type="Control" parent="PixelViewport/MenuLayer" unique_id=1040040346]
+[node name="MainMenu" type="Control" parent="PixelViewport/MenuLayer" unique_id=1040040346 node_paths=PackedStringArray("sfx")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -121,6 +132,7 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("9_menu")
 title_texture = ExtResource("10_title")
+sfx = NodePath("../../../Sfx")
 
 [node name="Title" type="TextureRect" parent="PixelViewport/MenuLayer/MainMenu" unique_id=177582296]
 layout_mode = 0
@@ -159,3 +171,4 @@ target = NodePath("../PixelViewport/BlackHole")
 
 [connection signal="view_cleared" from="PixelViewport/StaticBody3D" to="PixelViewport/MenuLayer/MainMenu" method="appear"]
 [connection signal="settings_pressed" from="PixelViewport/MenuLayer/MainMenu" to="PixelViewport/StaticBody3D" method="open_settings"]
+[connection signal="view_cleared" from="PixelViewport/StaticBody3D" to="Music" method="start"]

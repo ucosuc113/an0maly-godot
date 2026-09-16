@@ -21,6 +21,8 @@ signal view_cleared
 @export var look_illusion: Node
 ## Nodo con game_settings.gd: lo que muestra y edita la pagina SETTINGS.
 @export var settings: Node
+## Nodo con sfx.gd (opcional): sonidos de la terminal.
+@export var sfx: Node
 @export var look_delay: float = 0.35
 ## Resolucion interna de la pantalla. 180x136 = el tamano que ocupa el panel
 ## en la escena a 180 px de alto: 1 texel ~ 1 pixel, el texto queda nitido.
@@ -71,6 +73,7 @@ func _build_screen() -> void:
 	_terminal.size = screen_size
 	vp.add_child(_terminal)
 	_terminal.page_ready.connect(_on_page_ready)
+	_terminal.step_printed.connect(_on_step_printed)
 
 	var aabb := _panel.mesh.get_aabb()
 	_half_extents = Vector2(
@@ -94,6 +97,7 @@ func _build_screen() -> void:
 func _power_on(sequence: Callable) -> void:
 	_state = State.BOOTING
 	await get_tree().create_timer(power_on_delay).timeout
+	_play("crt_power_on")
 	sequence.call()
 	var t := create_tween()
 	t.tween_method(_set_collapse, 1.0, 0.0, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -120,6 +124,7 @@ func _shut_down() -> void:
 	await get_tree().create_timer(0.14).timeout
 	_terminal.pressed_id = ""
 
+	_play("crt_power_off")
 	var t := create_tween()
 	t.tween_method(_set_collapse, 0.0, 1.0, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	await t.finished
@@ -150,7 +155,11 @@ func on_pointer_move(hit_position: Vector3) -> void:
 	_last_hit = hit_position
 	if _state != State.INTERACTIVE:
 		return
-	_set_cursor(_terminal.hover(_to_screen_px(hit_position)) != "")
+	var before: String = _terminal.hover_id
+	var now: String = _terminal.hover(_to_screen_px(hit_position))
+	_set_cursor(now != "")
+	if now != "" and now != before:
+		_play("crt_hover")
 
 func on_pointer_exit() -> void:
 	_last_hit = null
@@ -163,11 +172,29 @@ func on_clicked(hit_position: Vector3) -> void:
 		return
 	match _terminal.click(_to_screen_px(hit_position)):
 		"initialize", "back":
+			_play("crt_click")
 			_shut_down()
+		"changed":
+			_play("crt_click", -2.0)
 
 func on_wheel(hit_position: Vector3, direction: int) -> void:
-	if _state == State.INTERACTIVE:
-		_terminal.wheel(_to_screen_px(hit_position), direction)
+	if _state == State.INTERACTIVE \
+			and _terminal.wheel(_to_screen_px(hit_position), direction):
+		# Tono un poco mas alto al subir, mas bajo al bajar.
+		_play("crt_hover", 2.0, 1.15 if direction > 0 else 0.9)
+
+# --- Sonido ----------------------------------------------------------------
+
+func _play(sound: String, volume_db: float = 0.0, pitch: float = 1.0) -> void:
+	if sfx:
+		sfx.play(sound, volume_db, pitch)
+
+## Tecleo del arranque: una tecla por linea impresa, un "OK" por estado.
+func _on_step_printed(op: String, text: String) -> void:
+	if op == "S":
+		_play("crt_ok")
+	elif not text.strip_edges().is_empty():
+		_play("crt_type", -1.0, randf_range(0.94, 1.08))
 
 func _set_cursor(pointing: bool) -> void:
 	Input.set_default_cursor_shape(

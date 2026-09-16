@@ -21,6 +21,8 @@ const REVEAL_SHADER = preload("res://dither_reveal.gdshader")
 @export var title_source_scale: int = 4
 @export var title_extra_downscale: int = 2
 @export var appear_delay: float = 1.0
+## Nodo con sfx.gd (opcional): sonidos del menu.
+@export var sfx: Node
 
 @export_group("Layout")
 ## Centro vertical del titulo y del bloque de botones (0..1 del alto).
@@ -52,6 +54,9 @@ func _ready() -> void:
 	$EnterButton.pressed.connect(_on_choice.bind(enter_pressed))
 	$SettingsButton.pressed.connect(_on_choice.bind(settings_pressed))
 	$EndingsButton.pressed.connect(_on_choice.bind(endings_pressed))
+	for b in _buttons:
+		b.hovered.connect(_play.bind("menu_hover"))
+		b.pressed.connect(_play.bind("menu_click"))
 
 	resized.connect(_layout)
 	_set_hidden()
@@ -71,6 +76,7 @@ func appear() -> void:
 	await get_tree().create_timer(appear_delay).timeout
 	visible = true
 	_time = 0.0
+	_play("menu_appear")
 
 	var t := create_tween().set_parallel()
 	# Titulo: se materializa lento.
@@ -97,6 +103,10 @@ func disappear() -> void:
 	await t.finished
 	visible = false
 	_busy = false
+
+func _play(sound: String) -> void:
+	if sfx:
+		sfx.play(sound)
 
 func _set_title_reveal(v: float) -> void:
 	_title_material.set_shader_parameter("progress", v)

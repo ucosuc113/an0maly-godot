@@ -7,6 +7,8 @@ extends Control
 # centro. Todo en la rejilla de pixeles del juego (PixelFont, posiciones enteras).
 
 signal pressed
+## El puntero entro al boton (solo si esta interactivo).
+signal hovered
 
 const PixelFont = preload("res://pixel_font.gd")
 const REVEAL_SHADER = preload("res://dither_reveal.gdshader")
@@ -70,6 +72,8 @@ func _set_hovered(value: bool) -> void:
 	_hovered = value
 	Input.set_default_cursor_shape(
 		Input.CURSOR_POINTING_HAND if value else Input.CURSOR_ARROW)
+	if value:
+		hovered.emit()
 
 func _process(delta: float) -> void:
 	var goal := 1.0 if _hovered else 0.0
