@@ -38,7 +38,8 @@ func _on_resized() -> void:
 func is_covered() -> bool:
 	return visible and float(_material.get_shader_parameter("progress")) >= 1.0
 
-func cover() -> void:
+## speed > 1 acorta la transicion (cortes rapidos en las cinematicas).
+func cover(speed: float = 1.0) -> void:
 	var edge := edge_color
 	if settings and bool(settings.get_value("reduce_flashing")):
 		edge = edge_color.darkened(0.75)
@@ -47,14 +48,14 @@ func cover() -> void:
 	_set_progress(0.0)
 	visible = true
 	var t := create_tween()
-	t.tween_method(_set_progress, 0.0, 1.0, cover_time) \
+	t.tween_method(_set_progress, 0.0, 1.0, cover_time / speed) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await t.finished
 
-func uncover() -> void:
+func uncover(speed: float = 1.0) -> void:
 	_material.set_shader_parameter("uncovering", true)
 	var t := create_tween()
-	t.tween_method(_set_progress, 1.0, 0.0, uncover_time) \
+	t.tween_method(_set_progress, 1.0, 0.0, uncover_time / speed) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await t.finished
 	visible = false

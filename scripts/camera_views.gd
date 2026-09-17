@@ -133,7 +133,9 @@ func register_view(view: StringName, xf: Transform3D) -> void:
 		add_child(marker)
 	marker.global_transform = xf
 
-func go_to(view: StringName) -> void:
+## speed > 1: corte rapido (cinematicas). Con speed = 2 la pantalla queda
+## tapada ~0.21 s despues de llamar y se destapa ~0.06 s mas tarde.
+func go_to(view: StringName, speed: float = 1.0) -> void:
 	if _busy or view == current or camera == null or transition == null:
 		return
 	var marker := get_node_or_null(NodePath(view)) as Node3D
@@ -147,7 +149,7 @@ func go_to(view: StringName) -> void:
 	if nav:
 		nav.hide_bar()
 	_play("view_close")
-	await transition.cover()
+	await transition.cover(speed)
 
 	camera.global_transform = marker.global_transform
 	var pane := _pane_marker(marker)
@@ -160,12 +162,12 @@ func go_to(view: StringName) -> void:
 		back_button.at_top = pane != null
 	current = view
 	view_changed.emit(view)
-	await get_tree().create_timer(hold_time, false).timeout
+	await get_tree().create_timer(hold_time / speed, false).timeout
 
 	_play("view_open")
 	if pane and split_view:
 		split_view.animate_in()
-	await transition.uncover()
+	await transition.uncover(speed)
 	if view == home_view:
 		_set_home_interactive(not cinematic)
 	elif not cinematic:

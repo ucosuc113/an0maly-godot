@@ -64,6 +64,8 @@ static func build_room() -> Dictionary:
 		"flood_on": _wav(flood_on(rng), 0.6),
 		"portal_on": _wav(portal_on(rng), 0.5),
 		"monitor_on": _wav(monitor_on(rng), 0.4),
+		"beam_fire": _wav(beam_fire(rng), 0.55),
+		"shield_ignite": _wav(shield_ignite(rng), 0.7),
 	}
 
 # --- CRT ------------------------------------------------------------------
@@ -525,6 +527,44 @@ static func monitor_on(rng: RandomNumberGenerator) -> PackedFloat32Array:
 		var hum := _soft_square(TAU * 120.0 * t, 2.0) * _ad(t - 0.05, 0.05, 0.3) * 0.25
 		s[i] = click + whine + hum
 	return _reverb(s, 0.2, 0.6, 0.6, 0.5, 0.4)
+
+## Disparo de un laser: zumbido que cae de tono con chisporroteo, y cola
+## que sigue sonando mientras el haz se asienta.
+static func beam_fire(rng: RandomNumberGenerator) -> PackedFloat32Array:
+	var n := _len(0.9)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var bp := _Biquad.bandpass(2500.0, 2.0)
+	var ph := 0.0
+	var ph2 := 0.0
+	for i in n:
+		var t := float(i) / SR
+		var f := lerpf(1400.0, 220.0, minf(t / 0.25, 1.0))
+		ph += TAU * f / SR
+		ph2 += TAU * f * 1.51 / SR
+		var zap := (_soft_square(ph, 2.5) * 0.6 + sin(ph2) * 0.3) * _ad(t, 0.002, 0.18)
+		var buzz := _soft_square(TAU * 110.0 * t, 1.5) * _ad(t - 0.05, 0.05, 0.35) * 0.25
+		var crackle := bp.process(rng.randf_range(-1.0, 1.0)) * _ad(t, 0.001, 0.08) * 0.7
+		s[i] = zap + buzz + crackle
+	return _reverb(s, 0.4, 1.3, 0.82, 0.4, 1.2)
+
+## Ignicion del escudo: grave enorme que se abre, con un barrido brillante.
+static func shield_ignite(rng: RandomNumberGenerator) -> PackedFloat32Array:
+	var n := _len(2.4)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var bp := _Biquad.bandpass(400.0, 1.0)
+	var ph := 0.0
+	for i in n:
+		var t := float(i) / SR
+		ph += TAU * lerpf(90.0, 38.0, minf(t / 0.8, 1.0)) / SR
+		var boom := tanh(2.4 * sin(ph)) * _ad(t, 0.004, 0.9)
+		if i % 64 == 0:
+			bp.set_bandpass(lerpf(300.0, 5000.0, minf(t / 1.2, 1.0)), 1.0)
+		var sweep := bp.process(rng.randf_range(-1.0, 1.0)) * smoothstep(0.0, 0.2, t) * exp(-t / 0.9) * 0.6
+		var shimmer := (sin(TAU * 880.0 * t) + sin(TAU * 1318.5 * t) * 0.6) * _ad(t - 0.1, 0.3, 0.8) * 0.08
+		s[i] = boom * 0.9 + sweep + shimmer
+	return _reverb(s, 0.5, 1.6, 0.87, 0.35, 2.0)
 
 ## Encendido de luces industriales: golpe de interruptor grande con arco
 ## electrico, "tinks" de los balastos mientras los tubos pelean por prender

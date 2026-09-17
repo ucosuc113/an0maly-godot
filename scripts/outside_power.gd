@@ -21,6 +21,11 @@ const STRIP_SHADER = preload("res://shaders/strip_power.gdshader")
 @export var sfx: Node
 ## Duracion del recorrido del frente, de arriba a abajo.
 @export var sweep_time: float = 2.6
+## Intensidad de las tiras respecto al modelo importado (encandilaban y no
+## dejaban ver el escudo).
+@export_range(0.0, 2.0, 0.05) var strip_intensity: float = 0.35
+## Intensidad de las luces reales respecto a la del editor.
+@export_range(0.0, 2.0, 0.05) var light_intensity: float = 0.45
 @export var portal_time: float = 1.2
 
 var _strip_mats: Array[ShaderMaterial] = []
@@ -56,7 +61,7 @@ func _setup_strips() -> void:
 			m.set_shader_parameter("albedo", base.albedo_color)
 			m.set_shader_parameter("roughness", base.roughness)
 			m.set_shader_parameter("emission_color", base.emission)
-			m.set_shader_parameter("emission_energy", maxf(base.emission_energy_multiplier, 1.0))
+			m.set_shader_parameter("emission_energy", maxf(base.emission_energy_multiplier, 1.0) * strip_intensity)
 			mi.set_surface_override_material(s, m)
 			_strip_mats.append(m)
 
@@ -69,7 +74,7 @@ func _setup_rows() -> void:
 		if not by_y.has(key):
 			by_y[key] = {"y": l.global_position.y, "lights": [], "energy": {}, "on": false}
 		by_y[key].lights.append(l)
-		by_y[key].energy[l] = l.light_energy
+		by_y[key].energy[l] = l.light_energy * light_intensity
 		l.light_energy = 0.0
 	_rows = by_y.values()
 	_rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.y > b.y)

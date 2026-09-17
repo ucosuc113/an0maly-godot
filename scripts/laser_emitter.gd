@@ -15,6 +15,11 @@ extends Node3D
 #                      sentido horario, Guiadores en antihorario (vistos de
 #                      frente), todos a spin_speed.
 #
+#   fire(target)       dispara el haz hacia un punto (crece desde el cabezal)
+#   pulse()            golpe de energia (haz, plasma y luz)
+#   set_beam(v, t)     intensidad del haz
+#   charge_up(v, t)    intensidad del plasma (1 = normal)
+#
 # El agujero por donde sale se calcula cruzando el eje con las mallas de
 # `walls`; si no hay, se usa hole_offset.
 #
@@ -30,6 +35,7 @@ signal ignited
 const PLASMA_SHADER = preload("res://shaders/plasma_core.gdshader")
 const BALL_SHADER = preload("res://shaders/plasma_ball.gdshader")
 const HALO_SHADER = preload("res://shaders/plasma_halo.gdshader")
+const BEAM_SHADER = preload("res://shaders/laser_beam.gdshader")
 
 ## Mallas de las paredes (el exterior): el agujero se calcula solo.
 @export var walls: Array[Node3D] = []
@@ -59,6 +65,8 @@ const HALO_SHADER = preload("res://shaders/plasma_halo.gdshader")
 @export var plasma_mid: Color = Color(0.12, 0.58, 1.0)
 @export var plasma_hot: Color = Color(0.8, 0.96, 1.0)
 @export var light_color: Color = Color(0.32, 0.62, 1.0)
+@export_group("Haz")
+@export var beam_radius: float = 0.035
 @export_group("Luz")
 @export var light_energy: float = 2.5
 @export var light_range: float = 1.6
@@ -96,6 +104,14 @@ var _chamber_center: Vector3
 var _chamber_radius: float = 0.0
 var _ball_mat: ShaderMaterial
 var _halo_mat: ShaderMaterial
+var _beam: MeshInstance3D
+var _beam_mat: ShaderMaterial
+var _beam_target: Vector3
+var _beam_intensity: float = 0.0
+var _beam_reach: float = 0.0
+var _plasma_boost: float = 1.0
+var _pulse: float = 0.0
+var _length_m: float = 0.0
 
 func _ready() -> void:
 	_unit = global_basis.y.length()
@@ -103,6 +119,7 @@ func _ready() -> void:
 	_setup_ball()
 	_setup_light()
 	var length := _body_length()
+	_length_m = length
 	var hole := _find_hole(length)
 	if hole > -INF:
 		hole_offset = hole
@@ -338,6 +355,84 @@ func _set_glow(v: float) -> void:
 	for m in _strip_mats:
 		m.emission_energy_multiplier = strip_energy * v
 
+# --- Haz -------------------------------------------------------------------------
+
+## Punta del laser (entre las horquillas), en su posicion final.
+func tip_position() -> Vector3:
+	var axis := global_basis.y.normalized()
+	return global_position + axis * (_base_along + _length_m)
+
+## Dispara el haz hacia `target`: crece desde el cabezal en `grow` segundos.
+func fire(target: Vector3, intensity: float = 1.0, grow: float = 0.18) -> void:
+	_beam_target = target
+	if _beam == null:
+		_build_beam()
+	_beam.visible = true
+	_play("beam_fire", -6.0, randf_range(0.95, 1.05))
+	var t := create_tween().set_parallel()
+	t.tween_property(self, "_beam_reach", 1.0, grow).from(0.0) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	t.tween_property(self, "_beam_intensity", intensity, grow * 0.5).from(intensity * 2.5)
+	pulse()
+
+## Intensidad del haz (0 = apagado).
+func set_beam(intensity: float, time: float = 0.4) -> void:
+	var t := create_tween()
+	t.tween_property(self, "_beam_intensity", intensity, time).set_trans(Tween.TRANS_SINE)
+	if intensity <= 0.0:
+		t.tween_callback(func() -> void:
+			if _beam:
+				_beam.visible = false)
+
+## Golpe de energia: el haz, el plasma y la luz destellan y vuelven.
+func pulse(amount: float = 1.0) -> void:
+	_pulse = maxf(_pulse, amount)
+
+## Intensidad del plasma y de la luz (1 = normal).
+func charge_up(value: float, time: float = 1.0) -> void:
+	create_tween().tween_property(self, "_plasma_boost", value, time).set_trans(Tween.TRANS_SINE)
+
+func _build_beam() -> void:
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = beam_radius
+	mesh.bottom_radius = beam_radius
+	mesh.height = 1.0
+	mesh.radial_segments = 8
+	mesh.rings = 1
+	mesh.cap_top = false
+	mesh.cap_bottom = false
+	_beam_mat = ShaderMaterial.new()
+	_beam_mat.shader = BEAM_SHADER
+	_beam_mat.set_shader_parameter("color", light_color)
+	_beam_mat.set_shader_parameter("core_color", plasma_hot)
+	_beam = MeshInstance3D.new()
+	_beam.name = "Beam"
+	_beam.mesh = mesh
+	_beam.material_override = _beam_mat
+	_beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_beam.top_level = true
+	_beam.layers = _inferior_layers()
+	add_child(_beam)
+
+func _update_beam() -> void:
+	var a := tip_position()
+	var ab := _beam_target - a
+	var length := ab.length()
+	if length < 0.001:
+		return
+	var dir := ab / length
+	# Cilindro: +Y hacia el objetivo, alto = largo del haz.
+	var side := dir.cross(Vector3.UP)
+	if side.length() < 0.01:
+		side = dir.cross(Vector3.RIGHT)
+	side = side.normalized()
+	var basis := Basis(side, dir * length, side.cross(dir).normalized())
+	_beam.global_transform = Transform3D(basis, a + ab * 0.5)
+	var boost := 1.0 + _pulse * 1.5
+	_beam_mat.set_shader_parameter("intensity", _beam_intensity * boost)
+	_beam_mat.set_shader_parameter("reach", _beam_reach)
+	_beam_mat.set_shader_parameter("length_m", length)
+
 # --- Movimiento ------------------------------------------------------------------
 
 func _process(delta: float) -> void:
@@ -346,12 +441,21 @@ func _process(delta: float) -> void:
 	_ring_angle = wrapf(_ring_angle + _ring_speed * delta, 0.0, TAU)
 	_head_angle = wrapf(_head_angle + _head_speed * delta, 0.0, TAU)
 	_apply()
+	_pulse = maxf(_pulse - delta * 2.5, 0.0)
+	if _beam and _beam.visible:
+		_update_beam()
+	var boost := _plasma_boost + _pulse
+	for m in _core_mats:
+		m.set_shader_parameter("intensity", boost)
+	if _ball_mat:
+		_ball_mat.set_shader_parameter("energy", clampf(_charge * 3.0, 0.0, 1.0) * boost)
+		_halo_mat.set_shader_parameter("energy", clampf(_charge * 3.0, 0.0, 1.0) * boost)
 	if _light.visible:
 		# La luz sigue a las tiras y a la carga; encendida, respira con el plasma.
 		var ms := Time.get_ticks_msec()
 		var breathe := 1.0 + 0.06 * sin(ms * 0.011) + 0.04 * sin(ms * 0.027)
 		var k := breathe if _glow >= 1.0 else 1.0
-		_light.light_energy = light_energy * maxf(_glow, _charge * 0.35) * k
+		_light.light_energy = light_energy * maxf(_glow, _charge * 0.35) * k * boost
 
 func _apply() -> void:
 	_inferior.position = Vector3(0.0, _body_offset, 0.0)
