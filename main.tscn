@@ -55,11 +55,20 @@
 [ext_resource type="Script" uid="uid://clhefhybopss7" path="res://scripts/outside_power.gd" id="40_opower"]
 [ext_resource type="Script" uid="uid://8yhtyohf5msh" path="res://scripts/cinematic_bars.gd" id="41_cbars"]
 [ext_resource type="Script" uid="uid://rtwnxhamslt8" path="res://scripts/phase_one.gd" id="42_phase1"]
+[ext_resource type="Script" path="res://scripts/reactor_sim.gd" id="43_sim"]
+[ext_resource type="Script" path="res://scripts/info_monitor.gd" id="44_imon"]
+[ext_resource type="Script" path="res://scripts/monitor_left.gd" id="45_mleft"]
+[ext_resource type="Script" path="res://scripts/monitor_central.gd" id="46_mcent"]
+[ext_resource type="Script" path="res://scripts/monitor_right.gd" id="47_mright"]
+[ext_resource type="Script" path="res://scripts/monitor_nav.gd" id="48_mnav"]
 [ext_resource type="PackedScene" uid="uid://cnqevin83tpmg" path="res://assets/Palancas/AnomalyPalancasTapa.fbx" id="48_f6a44"]
 [ext_resource type="PackedScene" uid="uid://buhlyka5qmp3u" path="res://assets/Lasers/LaserAnilloRotacion1.fbx" id="53_e71vb"]
 [ext_resource type="PackedScene" uid="uid://dmxdtg3727e4d" path="res://assets/Lasers/LaserGuiadores.fbx" id="54_rnkwl"]
 [ext_resource type="PackedScene" uid="uid://cokurcsjqnitq" path="res://assets/Lasers/LaserInferior.fbx" id="55_vke2r"]
 [ext_resource type="PackedScene" uid="uid://tbcwr5grm0wt" path="res://assets/Lasers/LaserLanzador.fbx" id="56_uit24"]
+[ext_resource type="PackedScene" uid="uid://ddcalvickbsrr" path="res://assets/MonitorCentral.fbx" id="61_sm6fg"]
+[ext_resource type="PackedScene" uid="uid://jduegswiv4oi" path="res://assets/MonitorDer.fbx" id="62_b17eg"]
+[ext_resource type="PackedScene" uid="uid://c44xirenvbmve" path="res://assets/MonitorIzq.fbx" id="63_ntx8l"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_b1q74"]
 size = Vector3(2.4763794, 1.9730225, 0.56921387)
@@ -369,6 +378,48 @@ views = NodePath("../../../CameraViews")
 model = NodePath("..")
 collision_from_mesh = true
 
+[node name="MonitorIzq" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=448115088 instance=ExtResource("63_ntx8l")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0027545989, 0, 0.06066802)
+
+[node name="MonitorBody" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/MonitorIzq" unique_id=1760000000 node_paths=PackedStringArray("sim", "model", "views")]
+script = ExtResource("44_imon")
+screen_script = ExtResource("45_mleft")
+screen_size = Vector2i(200, 100)
+boot_title = "LASERS"
+sim = NodePath("../../../ReactorSim")
+model = NodePath("..")
+views = NodePath("../../../CameraViews")
+view_name = &"MonitorIzq"
+
+[node name="MonitorCentral" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=1566512812 instance=ExtResource("61_sm6fg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0027545989, 0, 0.06066802)
+
+[node name="MonitorBody" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/MonitorCentral" unique_id=1760000001 node_paths=PackedStringArray("sim", "model", "views", "panel", "lateral_lasers", "diagonal_lasers")]
+script = ExtResource("44_imon")
+screen_script = ExtResource("46_mcent")
+screen_size = Vector2i(240, 146)
+boot_title = "REACTOR"
+sim = NodePath("../../../ReactorSim")
+panel = NodePath("../../../ControlPanel")
+lateral_lasers = [NodePath("../../../Outside/Lasers/LaserLateral1"), NodePath("../../../Outside/Lasers/LaserLateral2"), NodePath("../../../Outside/Lasers/LaserLateral3")]
+diagonal_lasers = [NodePath("../../../Outside/Lasers/LaserDiagonal1"), NodePath("../../../Outside/Lasers/LaserDiagonal2"), NodePath("../../../Outside/Lasers/LaserDiagonal3"), NodePath("../../../Outside/Lasers/LaserDiagonal4")]
+model = NodePath("..")
+views = NodePath("../../../CameraViews")
+view_name = &"MonitorCentral"
+
+[node name="MonitorDer" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=1800786016 instance=ExtResource("62_b17eg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0027545989, 0, 0.06066802)
+
+[node name="MonitorBody" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/MonitorDer" unique_id=1760000002 node_paths=PackedStringArray("sim", "model", "views")]
+script = ExtResource("44_imon")
+screen_script = ExtResource("47_mright")
+screen_size = Vector2i(200, 100)
+boot_title = "COOLING"
+sim = NodePath("../../../ReactorSim")
+model = NodePath("..")
+views = NodePath("../../../CameraViews")
+view_name = &"MonitorDer"
+
 [node name="RoomLights" type="Node3D" parent="PixelViewport" unique_id=1609245325]
 
 [node name="TubeRight" type="OmniLight3D" parent="PixelViewport/RoomLights" unique_id=898553800]
@@ -658,11 +709,11 @@ transform = Transform3D(0.065, -0.06499999, 0.091923885, 0.065, -0.065, -0.09192
 script = ExtResource("39_laser")
 walls = [NodePath("../../MapAnomalyAfueraBase2"), NodePath("../../MapAnomalyAfueraluz")]
 hole_offset = 0.33
-sfx = NodePath("../../../../Sfx")
 plasma_deep = Color(0.25, 0.04, 0.55, 1)
 plasma_mid = Color(0.68, 0.28, 1, 1)
 plasma_hot = Color(0.97, 0.86, 1, 1)
 light_color = Color(0.72, 0.38, 1, 1)
+sfx = NodePath("../../../../Sfx")
 
 [node name="Inferior" parent="PixelViewport/Outside/Lasers/LaserDiagonal1" unique_id=1819272520 instance=ExtResource("55_vke2r")]
 
@@ -684,11 +735,11 @@ transform = Transform3D(0.105614886, 0.071968414, 0.023791652, 0.065000005, -0.0
 script = ExtResource("39_laser")
 walls = [NodePath("../../MapAnomalyAfueraBase2"), NodePath("../../MapAnomalyAfueraluz")]
 hole_offset = 0.33
-sfx = NodePath("../../../../Sfx")
 plasma_deep = Color(0.25, 0.04, 0.55, 1)
 plasma_mid = Color(0.68, 0.28, 1, 1)
 plasma_hot = Color(0.97, 0.86, 1, 1)
 light_color = Color(0.72, 0.38, 1, 1)
+sfx = NodePath("../../../../Sfx")
 
 [node name="Inferior" parent="PixelViewport/Outside/Lasers/LaserDiagonal2" unique_id=187608311 instance=ExtResource("55_vke2r")]
 
@@ -710,11 +761,11 @@ transform = Transform3D(0.06499999, -0.06499998, 0.09192389, 0.09192387, 0.09192
 script = ExtResource("39_laser")
 walls = [NodePath("../../MapAnomalyAfueraBase2"), NodePath("../../MapAnomalyAfueraluz")]
 hole_offset = 0.33
-sfx = NodePath("../../../../Sfx")
 plasma_deep = Color(0.25, 0.04, 0.55, 1)
 plasma_mid = Color(0.68, 0.28, 1, 1)
 plasma_hot = Color(0.97, 0.86, 1, 1)
 light_color = Color(0.72, 0.38, 1, 1)
+sfx = NodePath("../../../../Sfx")
 
 [node name="Inferior" parent="PixelViewport/Outside/Lasers/LaserDiagonal3" unique_id=2027756252 instance=ExtResource("55_vke2r")]
 
@@ -736,11 +787,11 @@ transform = Transform3D(0.10561488, 0.07196841, 0.023791656, -0.038993523, 0.086
 script = ExtResource("39_laser")
 walls = [NodePath("../../MapAnomalyAfueraBase2"), NodePath("../../MapAnomalyAfueraluz")]
 hole_offset = 0.33
-sfx = NodePath("../../../../Sfx")
 plasma_deep = Color(0.25, 0.04, 0.55, 1)
 plasma_mid = Color(0.68, 0.28, 1, 1)
 plasma_hot = Color(0.97, 0.86, 1, 1)
 light_color = Color(0.72, 0.38, 1, 1)
+sfx = NodePath("../../../../Sfx")
 
 [node name="Inferior" parent="PixelViewport/Outside/Lasers/LaserDiagonal4" unique_id=367567813 instance=ExtResource("55_vke2r")]
 
@@ -776,14 +827,16 @@ model = NodePath("MapAnomalyCrystal")
 [node name="MapAnomalyCrystal" parent="PixelViewport/Crystal" unique_id=1918376115 instance=ExtResource("24_1u8w0")]
 transform = Transform3D(0.9995891, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.17027092)
 
-[node name="CameraViews" type="Node3D" parent="PixelViewport" unique_id=1733520846 node_paths=PackedStringArray("camera", "transition", "back_button", "split_view", "sfx", "home_interactables")]
+[node name="CameraViews" type="Node3D" parent="PixelViewport" unique_id=1733520846 node_paths=PackedStringArray("camera", "transition", "back_button", "split_view", "sfx", "home_interactables", "nav")]
 script = ExtResource("28_views")
 camera = NodePath("../Camera3D")
 transition = NodePath("../TransitionLayer/ViewTransition")
 back_button = NodePath("../HudLayer/BackButton")
 split_view = NodePath("../SplitLayer/SplitView")
 sfx = NodePath("../../Sfx")
-home_interactables = [NodePath("../Crystal"), NodePath("../MapAnomalyPlayerRoom/MapAnomalyPanelBase/PanelDesk")]
+home_interactables = [NodePath("../Crystal"), NodePath("../MapAnomalyPlayerRoom/MapAnomalyPanelBase/PanelDesk"), NodePath("../MapAnomalyPlayerRoom/MonitorIzq/MonitorBody"), NodePath("../MapAnomalyPlayerRoom/MonitorCentral/MonitorBody"), NodePath("../MapAnomalyPlayerRoom/MonitorDer/MonitorBody")]
+cycle_views = Array[StringName]([&"MonitorIzq", &"MonitorCentral", &"MonitorDer"])
+nav = NodePath("../HudLayer/MonitorNav")
 
 [node name="Room" type="Marker3D" parent="PixelViewport/CameraViews" unique_id=455190312]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.528)
@@ -823,6 +876,10 @@ sfx = NodePath("../../../Sfx")
 script = ExtResource("36_cover")
 target = NodePath("../../MapAnomalyPlayerRoom/AnomalyPalancasTapa")
 sfx = NodePath("../../../Sfx")
+
+[node name="ReactorSim" type="Node" parent="PixelViewport" unique_id=1760000010 node_paths=PackedStringArray("panel")]
+script = ExtResource("43_sim")
+panel = NodePath("../ControlPanel")
 
 [node name="PixelTextures" type="Node" parent="PixelViewport" unique_id=1650372941 node_paths=PackedStringArray("targets")]
 script = ExtResource("33_pxtex")
@@ -908,6 +965,18 @@ mouse_filter = 2
 script = ExtResource("30_vback")
 sfx = NodePath("../../../Sfx")
 
+[node name="MonitorNav" type="Control" parent="PixelViewport/HudLayer" unique_id=1760000011 node_paths=PackedStringArray("sfx")]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("48_mnav")
+sfx = NodePath("../../../Sfx")
+
 [node name="CinematicLayer" type="CanvasLayer" parent="PixelViewport" unique_id=1733004430]
 layer = 5
 
@@ -923,7 +992,7 @@ mouse_filter = 2
 script = ExtResource("41_cbars")
 sfx = NodePath("../../../Sfx")
 
-[node name="PhaseOne" type="Node" parent="PixelViewport" unique_id=1733004432 node_paths=PackedStringArray("panel", "views", "bars", "outside", "lasers", "diagonal_lasers")]
+[node name="PhaseOne" type="Node" parent="PixelViewport" unique_id=1733004432 node_paths=PackedStringArray("panel", "views", "bars", "outside", "lasers", "diagonal_lasers", "sim", "monitors")]
 script = ExtResource("42_phase1")
 panel = NodePath("../ControlPanel")
 views = NodePath("../CameraViews")
@@ -931,6 +1000,8 @@ bars = NodePath("../CinematicLayer/CinematicBars")
 outside = NodePath("../Outside/OutsidePower")
 lasers = [NodePath("../Outside/Lasers/LaserLateral1"), NodePath("../Outside/Lasers/LaserLateral2"), NodePath("../Outside/Lasers/LaserLateral3")]
 diagonal_lasers = [NodePath("../Outside/Lasers/LaserDiagonal1"), NodePath("../Outside/Lasers/LaserDiagonal2"), NodePath("../Outside/Lasers/LaserDiagonal3"), NodePath("../Outside/Lasers/LaserDiagonal4")]
+sim = NodePath("../ReactorSim")
+monitors = [NodePath("../MapAnomalyPlayerRoom/MonitorIzq/MonitorBody"), NodePath("../MapAnomalyPlayerRoom/MonitorCentral/MonitorBody"), NodePath("../MapAnomalyPlayerRoom/MonitorDer/MonitorBody")]
 
 [node name="TransitionLayer" type="CanvasLayer" parent="PixelViewport" unique_id=1560937702]
 layer = 6

@@ -5,7 +5,7 @@ extends RefCounted
 # Fuente bitmap 5x7 (estilo LCD/terminal de los 80) definida en codigo.
 # Una fuente vectorial a 7 px de alto se vuelve papilla; esta cae exacta en la
 # rejilla de pixeles de la pantalla CRT. Las minusculas se dibujan como
-# mayusculas. Caracteres extra: "∅" (el del titulo), "█" (cursor), "▶", "◀", "▼", "▲" y "🔒".
+# mayusculas. Caracteres extra: "∅" (el del titulo), "█" (cursor), "▶", "◀", "▼", "▲", "🔒", "⚠" y "°".
 
 const GLYPH_W := 5
 const GLYPH_H := 7
@@ -80,6 +80,8 @@ const GLYPHS := {
 	"▼": [".....", ".....", "#####", ".###.", "..#..", ".....", "....."],
 	"▲": [".....", ".....", "..#..", ".###.", "#####", ".....", "....."],
 	"🔒": [".###.", "#...#", "#...#", "#####", "##.##", "##.##", "#####"],
+	"⚠": ["..#..", "..#..", ".#.#.", ".#.#.", "#.#.#", "#...#", "#####"],
+	"°": [".##..", "#..#.", ".##..", ".....", ".....", ".....", "....."],
 }
 
 static var _texture: ImageTexture

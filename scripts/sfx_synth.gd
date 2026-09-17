@@ -63,6 +63,7 @@ static func build_room() -> Dictionary:
 		"plasma_hum": _wav(plasma_hum(rng), 0.3, true),
 		"flood_on": _wav(flood_on(rng), 0.6),
 		"portal_on": _wav(portal_on(rng), 0.5),
+		"monitor_on": _wav(monitor_on(rng), 0.4),
 	}
 
 # --- CRT ------------------------------------------------------------------
@@ -507,6 +508,23 @@ static func portal_on(rng: RandomNumberGenerator) -> PackedFloat32Array:
 			chord += sin(TAU * freqs[k] * t + rng.randf() * 0.02) / (1.0 + k)
 		s[i] = sub * 0.6 + chord * env * 0.25
 	return _reverb(s, 0.4, 1.4, 0.85, 0.4, 1.5)
+
+## Monitor encendiendose: chasquido del rele, silbido agudo de la fuente
+## que sube y un zumbido corto de la retroiluminacion.
+static func monitor_on(rng: RandomNumberGenerator) -> PackedFloat32Array:
+	var n := _len(1.0)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var bp := _Biquad.bandpass(3000.0, 3.0)
+	var ph := 0.0
+	for i in n:
+		var t := float(i) / SR
+		var click := bp.process(rng.randf_range(-1.0, 1.0)) * _ad(t, 0.0005, 0.01) * 1.5
+		ph += TAU * lerpf(6000.0, 9500.0, minf(t / 0.5, 1.0)) / SR
+		var whine := sin(ph) * smoothstep(0.02, 0.15, t) * exp(-t / 0.45) * 0.12
+		var hum := _soft_square(TAU * 120.0 * t, 2.0) * _ad(t - 0.05, 0.05, 0.3) * 0.25
+		s[i] = click + whine + hum
+	return _reverb(s, 0.2, 0.6, 0.6, 0.5, 0.4)
 
 ## Encendido de luces industriales: golpe de interruptor grande con arco
 ## electrico, "tinks" de los balastos mientras los tubos pelean por prender

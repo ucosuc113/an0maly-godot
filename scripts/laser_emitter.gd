@@ -70,6 +70,8 @@ const HALO_SHADER = preload("res://shaders/plasma_halo.gdshader")
 @onready var _guides: Node3D = $Guiadores
 @onready var _launcher: Node3D = $Lanzador
 
+## Estado para los monitores: hidden, rising, ready, online.
+var stage: StringName = &"hidden"
 var _unit: float = 1.0
 var _retract: float = 0.0
 var _body_offset: float = 0.0
@@ -249,10 +251,12 @@ func hide_retracted() -> void:
 	_set_glow(0.0)
 	_light.visible = false
 	visible = false
+	stage = &"hidden"
 	_apply()
 
 func rise() -> void:
 	visible = true
+	stage = &"rising"
 	var head_rest := -head_travel / _unit
 	# Anticipacion: se destraba y retrocede un poco.
 	_play("laser_lock", -10.0, 0.7)
@@ -294,6 +298,7 @@ func rise() -> void:
 	t.tween_property(self, "_ring_speed", 0.0, 0.9) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	await t.finished
+	stage = &"ready"
 	risen.emit()
 
 func ignite() -> void:
@@ -315,6 +320,7 @@ func ignite() -> void:
 	await t.finished
 	_set_glow(1.0)
 	_start_hum()
+	stage = &"online"
 	ignited.emit()
 
 func _set_charge(v: float) -> void:

@@ -9,6 +9,8 @@ extends Node
 #   sacude la camara
 #   se despliega la matriz diagonal (morados), desde las esquinas
 #   ignicion: primero los laterales, luego los diagonales -> "EMITTERS ONLINE"
+#   corte a la sala: se encienden los monitores de telemetria (solo muestran
+#   lo que ya existe; el resto, NO SIGNAL)
 #   salen las franjas -> vuelta a la vista del panel -> fase completa (se
 #   destapa el boton 02)
 #
@@ -24,7 +26,12 @@ const PHASE := 1
 @export var lasers: Array[Node] = []
 ## Lasers diagonales (laser_emitter.gd).
 @export var diagonal_lasers: Array[Node] = []
+## Nodo con reactor_sim.gd: los lasers cuentan desde que se encienden.
+@export var sim: Node
+## Monitores (info_monitor.gd), en el orden en que se encienden.
+@export var monitors: Array[Node] = []
 @export var cinematic_view: StringName = &"Window"
+@export var monitors_view: StringName = &"Room"
 @export var return_view: StringName = &"Panel"
 @export var laser_stagger: float = 0.45
 @export var diagonal_stagger: float = 0.3
@@ -66,12 +73,30 @@ func _run() -> void:
 
 	bars.set_caption("EMITTERS LOCKED // IGNITION")
 	await _wait(0.6)
+	if sim:
+		sim.lasers_online = true
 	await _all(lasers, "ignite", ignite_stagger)
 	await _wait(0.2)
 	await _all(diagonal_lasers, "ignite", diagonal_ignite_stagger)
 
 	bars.set_caption("EMITTERS ONLINE", bars.ok_color)
-	await _wait(2.4)
+	await _wait(2.2)
+
+	# Telemetria: los monitores de la sala se encienden uno tras otro.
+	if not monitors.is_empty():
+		bars.set_caption("TELEMETRY // LINK")
+		if dolly and dolly.is_valid():
+			dolly.kill()
+		await views.go_to(monitors_view)
+		await _wait(0.5)
+		for m in monitors:
+			if m:
+				m.power_on()
+				await _wait(0.45)
+		await _wait(2.4)
+		bars.set_caption("TELEMETRY ONLINE", bars.ok_color)
+		await _wait(1.4)
+
 	await bars.hide_bars()
 	if dolly and dolly.is_valid():
 		dolly.kill()

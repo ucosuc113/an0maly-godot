@@ -15,10 +15,17 @@ extends Node3D
 # las teclas de view_back (SPACE / S / flecha abajo / BACKSPACE / clic
 # derecho). Los nodos de home_interactables (con `enabled`) solo responden en
 # home_view.
+#
+# Grupo de vistas (cycle_views, p. ej. los monitores): dentro de el aparecen
+# las flechas de nav (monitor_nav.gd) y funcionan las teclas view_prev /
+# view_next (A / D / flechas). Las vistas tambien se pueden crear desde codigo
+# con register_view().
 
 signal view_changed(view: StringName)
 
 const BACK_ACTION := &"view_back"
+const PREV_ACTION := &"view_prev"
+const NEXT_ACTION := &"view_next"
 
 @export var camera: Camera3D
 @export var transition: Node
@@ -29,6 +36,10 @@ const BACK_ACTION := &"view_back"
 @export var sfx: Node
 @export var home_view: StringName = &"Room"
 @export var home_interactables: Array[Node] = []
+## Vistas que se recorren con las flechas, en orden.
+@export var cycle_views: Array[StringName] = []
+## Nodo con monitor_nav.gd (flechas de las vistas del grupo).
+@export var nav: Node
 ## Pausa con la pantalla tapada, ya con la camara en su lugar.
 @export var hold_time: float = 0.12
 
@@ -37,8 +48,13 @@ var current: StringName
 var cinematic: bool = false:
 	set(value):
 		cinematic = value
-		if value and back_button:
-			back_button.hide_bar()
+		if value:
+			if back_button:
+				back_button.hide_bar()
+			if nav:
+				nav.hide_bar()
+		elif current == home_view and not _busy:
+			_set_home_interactive(true)
 var _busy: bool = false
 var _shake_tween: Tween
 
@@ -47,8 +63,23 @@ func _ready() -> void:
 	_register_action()
 	if back_button:
 		back_button.pressed.connect(back)
+	if nav:
+		nav.prev_pressed.connect(cycle.bind(-1))
+		nav.next_pressed.connect(cycle.bind(1))
 
 func _register_action() -> void:
+	for pair in [[PREV_ACTION, [KEY_A, KEY_LEFT], JOY_BUTTON_LEFT_SHOULDER],
+			[NEXT_ACTION, [KEY_D, KEY_RIGHT], JOY_BUTTON_RIGHT_SHOULDER]]:
+		if InputMap.has_action(pair[0]):
+			continue
+		InputMap.add_action(pair[0])
+		for key in pair[1]:
+			var k := InputEventKey.new()
+			k.physical_keycode = key
+			InputMap.action_add_event(pair[0], k)
+		var jb := InputEventJoypadButton.new()
+		jb.button_index = pair[2]
+		InputMap.action_add_event(pair[0], jb)
 	if InputMap.has_action(BACK_ACTION):
 		return
 	InputMap.add_action(BACK_ACTION)
@@ -70,12 +101,37 @@ func _process(_delta: float) -> void:
 		if back_button:
 			back_button.flash()
 		back()
+	if current in cycle_views and not _busy and not cinematic:
+		if Input.is_action_just_pressed(PREV_ACTION):
+			if nav:
+				nav.flash(-1)
+			cycle(-1)
+		elif Input.is_action_just_pressed(NEXT_ACTION):
+			if nav:
+				nav.flash(1)
+			cycle(1)
 
 func is_busy() -> bool:
 	return _busy
 
 func back() -> void:
 	go_to(home_view)
+
+## Pasa a la vista vecina del grupo (dir -1 / +1).
+func cycle(dir: int) -> void:
+	var i := cycle_views.find(current)
+	if i < 0 or cycle_views.size() < 2:
+		return
+	go_to(cycle_views[wrapi(i + dir, 0, cycle_views.size())])
+
+## Crea (o mueve) la vista `view` con la camara en `xf`.
+func register_view(view: StringName, xf: Transform3D) -> void:
+	var marker := get_node_or_null(NodePath(view)) as Node3D
+	if marker == null:
+		marker = Marker3D.new()
+		marker.name = view
+		add_child(marker)
+	marker.global_transform = xf
 
 func go_to(view: StringName) -> void:
 	if _busy or view == current or camera == null or transition == null:
@@ -88,6 +144,8 @@ func go_to(view: StringName) -> void:
 	_set_home_interactive(false)
 	if back_button:
 		back_button.hide_bar()
+	if nav:
+		nav.hide_bar()
 	_play("view_close")
 	await transition.cover()
 
@@ -109,9 +167,12 @@ func go_to(view: StringName) -> void:
 		split_view.animate_in()
 	await transition.uncover()
 	if view == home_view:
-		_set_home_interactive(true)
-	elif back_button and not cinematic:
-		back_button.show_bar()
+		_set_home_interactive(not cinematic)
+	elif not cinematic:
+		if back_button:
+			back_button.show_bar()
+		if nav and view in cycle_views:
+			nav.show_bar()
 	_busy = false
 
 ## Sacudida de camara (golpes). strength en metros; en pixel art 0.004 ~ 1 px
