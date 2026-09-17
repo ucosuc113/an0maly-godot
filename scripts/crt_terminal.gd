@@ -19,10 +19,13 @@ signal page_ready
 ## op: L/A/R/S (ver start_boot); text: lo que se imprimio.
 signal step_printed(op: String, text: String)
 
-const PixelFont = preload("res://pixel_font.gd")
+const PixelFont = preload("res://scripts/pixel_font.gd")
 
 enum Phase { BLANK, BOOT, MENU, SETTINGS }
 
+## Tamano para el que esta maquetada la terminal. Si la pantalla es mas
+## grande, crt_monitor.gd la centra.
+const CONTENT_SIZE := Vector2i(180, 136)
 const MARGIN := Vector2i(8, 8)
 const LINE_H := 9
 ## Columnas por linea: los estados ("OK", "ARMED"...) se alinean a la derecha aqui.
@@ -38,9 +41,11 @@ const SETTING_ROWS := [
 	{"id": "sfx_volume", "label": "SFX VOLUME", "kind": "level"},
 	{"id": "mute_unfocused", "label": "MUTE IN BACKGROUND", "kind": "toggle"},
 	{"id": "reduce_flashing", "label": "REDUCE FLASHING", "kind": "toggle"},
+	{"id": "bloom", "label": "BLOOM", "kind": "toggle"},
+	{"id": "extra_lights", "label": "EXTRA LIGHTS", "kind": "toggle"},
 ]
-const ROWS_Y := 26
-const ROW_H := 13
+const ROWS_Y := 25
+const ROW_H := 10
 const LABEL_X := 16
 const BAR_X := 122
 const SEG_W := 4
@@ -71,6 +76,9 @@ var _hits: Dictionary = {}
 var _time: float = 0.0
 var _page_time: float = 0.0
 var _saved_flash: float = 0.0
+## Se incrementa en cada secuencia nueva o en blank(): una secuencia vieja que
+## despierta de un await ve que ya no es la actual y se detiene.
+var _sequence: int = 0
 
 func _process(delta: float) -> void:
 	_time += delta
@@ -123,8 +131,8 @@ func start_boot() -> void:
 		[0.06, "L", "SYSTEM READY.", 2],
 		[0.22, "L", "", 1],
 	]
-	await _run_steps(steps)
-	_open_page(Phase.MENU)
+	if await _run_steps(steps):
+		_open_page(Phase.MENU)
 
 ## Carga corta antes de mostrar los ajustes (mismo lenguaje que el arranque).
 func start_settings() -> void:
@@ -132,26 +140,32 @@ func start_settings() -> void:
 		[0.00, "L", "> MOUNT /USR/CFG", 1],
 		[0.06, "S", "OK", 2],
 		[0.05, "L", "> READ USER.CFG", 1],
-		[0.08, "S", "6 KEYS", 2],
+		[0.08, "S", "%d KEYS" % SETTING_ROWS.size(), 2],
 		[0.05, "L", "> OPEN SETTINGS", 1],
 		[0.16, "L", "", 1],
 	]
-	await _run_steps(steps)
-	_open_page(Phase.SETTINGS)
+	if await _run_steps(steps):
+		_open_page(Phase.SETTINGS)
 
-func _run_steps(steps: Array) -> void:
+## Devuelve false si la secuencia se cancelo (blank() a mitad de camino).
+func _run_steps(steps: Array) -> bool:
+	_sequence += 1
+	var my_sequence := _sequence
 	phase = Phase.BOOT
 	_lines.clear()
 	_hits.clear()
 	for step in steps:
 		if step[0] > 0.0:
 			await get_tree().create_timer(step[0]).timeout
+			if my_sequence != _sequence:
+				return false
 		_apply_step(step[1], step[2], step[3])
 		queue_redraw()
 		step_printed.emit(step[1], step[2])
 	phase = Phase.BLANK
 	queue_redraw()
 	await get_tree().create_timer(0.12).timeout
+	return my_sequence == _sequence
 
 func _open_page(page: Phase) -> void:
 	_page_time = 0.0
@@ -177,6 +191,8 @@ func _apply_step(op: String, text: String, tone: int) -> void:
 			_lines[-1].append([text, tone])
 
 func blank() -> void:
+	# Cancela cualquier secuencia en curso.
+	_sequence += 1
 	phase = Phase.BLANK
 	_hits.clear()
 	hover_id = ""
@@ -381,7 +397,7 @@ func _draw_setting_row(i: int, right: int) -> void:
 	var row: Dictionary = SETTING_ROWS[i]
 	var y: int = ROWS_Y + i * ROW_H
 	var hot: bool = hover_id == row.id
-	var band := Rect2i(MARGIN.x - 3, y - 3, right - MARGIN.x + 6, ROW_H)
+	var band := Rect2i(MARGIN.x - 3, y - 2, right - MARGIN.x + 6, ROW_H)
 	_hits[row.id] = band
 
 	if hot:
@@ -403,7 +419,8 @@ func _draw_toggle(on: bool, y: int, right: int) -> void:
 	for opt in [["ON", on_x, on], ["OFF", off_x, not on]]:
 		var tw: int = PixelFont.text_width(opt[0])
 		if opt[2]:
-			draw_rect(Rect2(opt[1] - 2, y - 2, tw + 4, PixelFont.GLYPH_H + 4), phosphor)
+			# 1 px de aire arriba y abajo: dos filas seguidas no se tocan.
+			draw_rect(Rect2(opt[1] - 2, y - 1, tw + 4, PixelFont.GLYPH_H + 2), phosphor)
 			PixelFont.draw(self, opt[0], Vector2(opt[1], y), background)
 		else:
 			PixelFont.draw(self, opt[0], Vector2(opt[1], y), _tone(0))

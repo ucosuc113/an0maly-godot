@@ -13,7 +13,7 @@ signal enter_pressed
 signal settings_pressed
 signal endings_pressed
 
-const REVEAL_SHADER = preload("res://dither_reveal.gdshader")
+const REVEAL_SHADER = preload("res://shaders/dither_reveal.gdshader")
 
 @export var title_texture: Texture2D
 ## El PNG es pixel art escalado x4 (nativo 456x93). Se reduce este factor en

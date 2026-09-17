@@ -18,6 +18,8 @@ const DEFAULTS := {
 	"sfx_volume": 8,
 	"mute_unfocused": true,
 	"reduce_flashing": false,
+	"bloom": true,
+	"extra_lights": true,
 }
 
 ## Bus de audio que controla cada ajuste de volumen. Music y SFX se crean si el
@@ -27,6 +29,12 @@ const VOLUME_BUSES := {
 	"music_volume": "Music",
 	"sfx_volume": "SFX",
 }
+
+## WorldEnvironment cuyo glow controla "bloom".
+@export var bloom_environment: WorldEnvironment
+## Nodos con luces decorativas que controla "extra_lights" (se ocultan: una
+## luz oculta no cuesta nada). Pensado para equipos lentos.
+@export var extra_lights: Array[Node3D] = []
 
 var _values: Dictionary = DEFAULTS.duplicate()
 ## Master silenciado porque la ventana perdio el foco (y mute_unfocused esta ON).
@@ -72,6 +80,13 @@ func _apply(id: String) -> void:
 			var level: int = value
 			AudioServer.set_bus_mute(bus, level == 0 or (bus == 0 and _unfocused_muted))
 			AudioServer.set_bus_volume_db(bus, linear_to_db(float(level) / LEVEL_MAX))
+		"bloom":
+			if bloom_environment and bloom_environment.environment:
+				bloom_environment.environment.glow_enabled = value
+		"extra_lights":
+			for n in extra_lights:
+				if n:
+					n.visible = value
 		# mute_unfocused se aplica en _notification; reduce_flashing lo leen los
 		# efectos que destellan (por ahora, el apagado del CRT).
 

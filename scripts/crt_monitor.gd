@@ -24,12 +24,15 @@ signal view_cleared
 ## Nodo con sfx.gd (opcional): sonidos de la terminal.
 @export var sfx: Node
 @export var look_delay: float = 0.35
-## Resolucion interna de la pantalla. 180x136 = el tamano que ocupa el panel
-## en la escena a 180 px de alto: 1 texel ~ 1 pixel, el texto queda nitido.
+## Resolucion interna de la pantalla. Con auto_screen_size se reemplaza al
+## iniciar por lo que el panel ocupa de verdad en la escena (a 180 filas):
+## 1 texel = 1 pixel, el texto queda nitido aunque muevas camara o monitor.
 @export var screen_size: Vector2i = Vector2i(180, 136)
+@export var auto_screen_size: bool = true
 @export var phosphor: Color = Color(1.0, 0.66, 0.12)
 @export var power_on_delay: float = 0.3
-## Luz que la pantalla proyecta sobre la carcasa y el entorno (opcional).
+## Luz que la pantalla proyecta sobre la carcasa (opcional). Es exclusiva del
+## CRT: solo existe mientras la pantalla esta encendida, nunca ilumina la sala.
 @export var screen_light: OmniLight3D
 
 enum State { OFF, BOOTING, INTERACTIVE, SHUTTING_DOWN, GONE, RETURNING }
@@ -48,6 +51,7 @@ func _ready() -> void:
 	if screen_light:
 		_light_energy = screen_light.light_energy
 		screen_light.light_color = phosphor
+		screen_light.visible = false
 	_build_screen()
 	if settings:
 		settings.changed.connect(_on_setting_changed)
@@ -56,6 +60,15 @@ func _ready() -> void:
 	_power_on(_terminal.start_boot)
 
 func _build_screen() -> void:
+	var aabb := _panel.mesh.get_aabb()
+	_half_extents = Vector2(
+		maxf(absf(aabb.position.x), absf(aabb.end.x)),
+		maxf(absf(aabb.position.y), absf(aabb.end.y)))
+	# El borde del vidrio es la parte mas hundida: la cara trasera del AABB.
+	_plane_z = aabb.position.z
+	if auto_screen_size:
+		_measure_screen()
+
 	var vp := SubViewport.new()
 	vp.name = "ScreenViewport"
 	vp.size = screen_size
@@ -67,28 +80,45 @@ func _build_screen() -> void:
 	add_child(vp)
 
 	_terminal = Control.new()
-	_terminal.set_script(load("res://crt_terminal.gd"))
+	_terminal.set_script(load("res://scripts/crt_terminal.gd"))
 	_terminal.phosphor = phosphor
 	_terminal.settings = settings
-	_terminal.size = screen_size
+	# La maqueta de la terminal es de CONTENT_SIZE; si la pantalla es mas
+	# grande, se centra y el resto se rellena con el mismo fondo.
+	var content: Vector2i = _terminal.CONTENT_SIZE
+	_terminal.size = content
+	_terminal.position = Vector2((screen_size - content) / 2).max(Vector2.ZERO)
+	var backdrop := ColorRect.new()
+	backdrop.color = _terminal.background
+	backdrop.size = screen_size
+	vp.add_child(backdrop)
 	vp.add_child(_terminal)
 	_terminal.page_ready.connect(_on_page_ready)
 	_terminal.step_printed.connect(_on_step_printed)
 
-	var aabb := _panel.mesh.get_aabb()
-	_half_extents = Vector2(
-		maxf(absf(aabb.position.x), absf(aabb.end.x)),
-		maxf(absf(aabb.position.y), absf(aabb.end.y)))
-	# El borde del vidrio es la parte mas hundida: la cara trasera del AABB.
-	_plane_z = aabb.position.z
-
 	_material = ShaderMaterial.new()
-	_material.shader = load("res://crt_screen.gdshader")
+	_material.shader = load("res://shaders/crt_screen.gdshader")
 	_material.set_shader_parameter("screen_tex", vp.get_texture())
 	_material.set_shader_parameter("half_extents", _half_extents)
 	_material.set_shader_parameter("screen_size", Vector2(screen_size))
 	_material.set_shader_parameter("plane_z", _plane_z)
 	_panel.material_override = _material
+
+## Mide cuantos pixeles de la escena ocupa el vidrio. El PixelViewport siempre
+## tiene 180 filas y la camara mantiene el FOV vertical, asi que la medida vale
+## para cualquier tamano de ventana.
+func _measure_screen() -> void:
+	var camera := get_viewport().get_camera_3d()
+	if camera == null:
+		return
+	var xf := _panel.global_transform
+	var a := camera.unproject_position(xf * Vector3(-_half_extents.x, _half_extents.y, _plane_z))
+	var b := camera.unproject_position(xf * Vector3(_half_extents.x, -_half_extents.y, _plane_z))
+	var measured := Vector2i((b - a).abs().round())
+	var content: Vector2i = preload("res://scripts/crt_terminal.gd").CONTENT_SIZE
+	if measured.x < content.x or measured.y < content.y:
+		push_warning("CRT: la pantalla mide %s px en escena, menos que el contenido %s; el texto se vera comprimido." % [measured, content])
+	screen_size = measured.max(Vector2i(16, 16))
 
 # --- Secuencias ------------------------------------------------------------
 
@@ -97,12 +127,16 @@ func _build_screen() -> void:
 func _power_on(sequence: Callable) -> void:
 	_state = State.BOOTING
 	await get_tree().create_timer(power_on_delay).timeout
+	if screen_light:
+		screen_light.visible = true
 	_play("crt_power_on")
 	sequence.call()
 	var t := create_tween()
 	t.tween_method(_set_collapse, 1.0, 0.0, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 func _on_page_ready() -> void:
+	if _state != State.BOOTING:
+		return
 	_state = State.INTERACTIVE
 	# Si el puntero ya estaba encima de algo, resaltarlo sin esperar a que se mueva.
 	if _last_hit != null:
@@ -129,6 +163,8 @@ func _shut_down() -> void:
 	t.tween_method(_set_collapse, 0.0, 1.0, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	await t.finished
 	_terminal.blank()
+	if screen_light:
+		screen_light.visible = false
 	screen_off.emit()
 
 	await get_tree().create_timer(look_delay).timeout
@@ -213,4 +249,5 @@ func _to_screen_px(hit_position: Vector3) -> Vector2i:
 			local = cam + (local - cam) * ((cam.z - _plane_z) / denom)
 	var uv := Vector2(local.x / _half_extents.x, -local.y / _half_extents.y) * 0.5 \
 		+ Vector2(0.5, 0.5)
-	return Vector2i((uv * Vector2(screen_size)).floor())
+	# Pixel dentro de la terminal (que puede estar centrada en la pantalla).
+	return Vector2i((uv * Vector2(screen_size) - _terminal.position).floor())

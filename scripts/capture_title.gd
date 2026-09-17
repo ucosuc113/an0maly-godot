@@ -2,7 +2,7 @@ extends SceneTree
 
 # Captura del agujero negro SIN fondo, con canal alfa, para usarlo de recurso.
 #
-#   "C:/ruta/a/Godot.exe" --path . --rendering-driver opengl3 --script res://capture_title.gd
+#   "C:/ruta/a/Godot.exe" --path . --rendering-driver opengl3 --script res://scripts/capture_title.gd
 #
 # Script desechable: borralo cuando no lo necesites.
 
@@ -17,7 +17,7 @@ const TRIM := false                    ## Recortar al alfa util (quita el vacio)
 ## false = color premultiplicado, identico a lo que ves sobre fondo negro.
 const STRAIGHT_ALPHA := true
 const WARMUP := 60                     ## Frames antes de disparar.
-const OUT_PATH := "res://black_hole_title_hd.png"
+const OUT_PATH := "res://assets/black_hole_title_hd.png"
 # -------------------------------------------------------------------------
 
 var _scene: Node

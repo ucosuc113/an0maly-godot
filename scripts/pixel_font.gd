@@ -1,6 +1,6 @@
 extends RefCounted
 
-# Uso: const PixelFont = preload("res://pixel_font.gd")
+# Uso: const PixelFont = preload("res://scripts/pixel_font.gd")
 #
 # Fuente bitmap 5x7 (estilo LCD/terminal de los 80) definida en codigo.
 # Una fuente vectorial a 7 px de alto se vuelve papilla; esta cae exacta en la

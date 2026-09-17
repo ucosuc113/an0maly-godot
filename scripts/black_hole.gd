@@ -179,7 +179,7 @@ func _build_event_horizon() -> void:
 	mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 	_material = ShaderMaterial.new()
-	_material.shader = load("res://black_hole_lensing.gdshader")
+	_material.shader = load("res://shaders/black_hole_lensing.gdshader")
 	mesh_instance.material_override = _material
 
 	add_child(mesh_instance)

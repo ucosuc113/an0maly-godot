@@ -10,8 +10,8 @@ signal pressed
 ## El puntero entro al boton (solo si esta interactivo).
 signal hovered
 
-const PixelFont = preload("res://pixel_font.gd")
-const REVEAL_SHADER = preload("res://dither_reveal.gdshader")
+const PixelFont = preload("res://scripts/pixel_font.gd")
+const REVEAL_SHADER = preload("res://shaders/dither_reveal.gdshader")
 
 @export var text: String = "BUTTON":
 	set(value):
