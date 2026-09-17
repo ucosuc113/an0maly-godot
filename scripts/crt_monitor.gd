@@ -17,6 +17,10 @@ signal screen_off
 ## INITIALIZE y tras BACK). El menu principal escucha esta senal.
 signal view_cleared
 
+## Marca en get_tree().root que deja pause_menu.gd antes de recargar la escena
+## para volver al menu: el monitor arranca ya fuera de cuadro, sin el boot.
+const SKIP_BOOT_META := &"anomaly_skip_boot"
+
 ## Nodo con look_illusion.gd que saca/trae el monitor de cuadro.
 @export var look_illusion: Node
 ## Nodo con game_settings.gd: lo que muestra y edita la pagina SETTINGS.
@@ -57,7 +61,12 @@ func _ready() -> void:
 		settings.changed.connect(_on_setting_changed)
 		_on_setting_changed("reduce_flashing", settings.get_value("reduce_flashing"))
 	_set_collapse(1.0)
-	_power_on(_terminal.start_boot)
+	var root := get_tree().root
+	if root.has_meta(SKIP_BOOT_META):
+		root.remove_meta(SKIP_BOOT_META)
+		_skip_boot.call_deferred()
+	else:
+		_power_on(_terminal.start_boot)
 
 func _build_screen() -> void:
 	var aabb := _panel.mesh.get_aabb()
@@ -142,11 +151,22 @@ func _on_page_ready() -> void:
 	if _last_hit != null:
 		on_pointer_move(_last_hit)
 
+## Vuelta desde la pausa: el monitor ya "no esta" (la mirada quedo arriba) y
+## el menu principal aparece como tras INITIALIZE.
+func _skip_boot() -> void:
+	_state = State.GONE
+	_set_collision(false)
+	_terminal.blank()
+	if look_illusion:
+		look_illusion.snap_away()
+	view_cleared.emit()
+
 ## Trae el monitor de vuelta a cuadro y abre la pagina de ajustes.
 func open_settings() -> void:
 	if _state != State.GONE:
 		return
 	_state = State.RETURNING
+	_set_collision(true)
 	if look_illusion:
 		look_illusion.play_back()
 		await look_illusion.finished
@@ -172,7 +192,13 @@ func _shut_down() -> void:
 	if look_illusion:
 		look_illusion.play()
 		await look_illusion.finished
+	_set_collision(false)
 	view_cleared.emit()
+
+## Fuera de cuadro el monitor no debe atajar los clics destinados a la sala.
+func _set_collision(on: bool) -> void:
+	for c in find_children("*", "CollisionShape3D", false, false):
+		c.set_deferred("disabled", not on)
 
 func _set_collapse(value: float) -> void:
 	_material.set_shader_parameter("collapse", value)

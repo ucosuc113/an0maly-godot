@@ -17,15 +17,49 @@
 [ext_resource type="Script" uid="uid://bu31vlkvi6lqj" path="res://scripts/sfx.gd" id="13_sfx"]
 [ext_resource type="Script" uid="uid://bl3y3l01d6xy" path="res://scripts/music.gd" id="14_music"]
 [ext_resource type="AudioStream" uid="uid://ditwhfs0iggmy" path="res://assets/MenuMusic.ogg" id="15_menumusic"]
+[ext_resource type="PackedScene" uid="uid://k2h38un53ksw" path="res://assets/Palancas/AnomalyPalancaEnergiaDiagonal.fbx" id="15_ok6jj"]
+[ext_resource type="PackedScene" uid="uid://cgjke7w57v1d7" path="res://assets/Palancas/AnomalyPalancaEnergiaHorizontal.fbx" id="16_facbu"]
+[ext_resource type="PackedScene" uid="uid://bye72snoc8iwq" path="res://assets/Palancas/AnomalyPalancaRefriDiagonal.fbx" id="17_b1qrp"]
 [ext_resource type="PackedScene" uid="uid://d11cmukgygu5g" path="res://assets/models/MapAnomalyPlayerRoom.fbx" id="18_074og"]
+[ext_resource type="PackedScene" uid="uid://dqduuo8a08vnc" path="res://assets/Palancas/AnomalyPalancaRefriVentilador.fbx" id="18_come4"]
 [ext_resource type="PackedScene" uid="uid://cpw82qqyi4acw" path="res://assets/models/MapAnomalyPanelBase.fbx" id="19_cegan"]
+[ext_resource type="PackedScene" uid="uid://bamikjd0kxjlq" path="res://assets/Botones/AnomalyBoton1Base.fbx" id="19_gngh3"]
+[ext_resource type="PackedScene" uid="uid://dsw4mgv0vrmw2" path="res://assets/Botones/AnomalyBoton1Bolita.fbx" id="20_0n3wm"]
 [ext_resource type="Script" uid="uid://btpr4trku5ymm" path="res://scripts/game_intro.gd" id="20_intro"]
 [ext_resource type="PackedScene" uid="uid://bw2eb6u7mrylw" path="res://assets/models/MapAnomalyAfueraBase2.fbx" id="21_getpj"]
+[ext_resource type="PackedScene" uid="uid://ct8kd82pgiwtn" path="res://assets/Botones/AnomalyBoton2Base.fbx" id="21_qnost"]
 [ext_resource type="PackedScene" uid="uid://c2farto043l7" path="res://assets/models/MapAnomalyAfueraluz.fbx" id="22_ryguw"]
+[ext_resource type="PackedScene" uid="uid://dyt41wvebk7vg" path="res://assets/Botones/AnomalyBoton2Bolita.fbx" id="22_wnkbs"]
+[ext_resource type="PackedScene" uid="uid://cptsfctnoyv34" path="res://assets/Botones/AnomalyBoton2Cristal.fbx" id="23_f6a44"]
 [ext_resource type="Script" uid="uid://c0kn5vcr75bxt" path="res://scripts/glow_control.gd" id="23_glow"]
+[ext_resource type="PackedScene" uid="uid://2wp2pl6tihjd" path="res://assets/Botones/AnomalyBoton3Base.fbx" id="24_0cbny"]
 [ext_resource type="PackedScene" uid="uid://debdj1l68unq" path="res://assets/models/MapAnomalyCrystal.fbx" id="24_1u8w0"]
+[ext_resource type="PackedScene" uid="uid://cj33f4nhkgyry" path="res://assets/Botones/AnomalyBoton3Bolita.fbx" id="25_hrvbo"]
 [ext_resource type="Script" uid="uid://cebxyg0e7kq8i" path="res://scripts/render_layers.gd" id="25_layers"]
 [ext_resource type="Script" uid="uid://dhuwujl82osbs" path="res://scripts/window_crystal.gd" id="26_crystal"]
+[ext_resource type="PackedScene" uid="uid://225lfhvnifnq" path="res://assets/Botones/AnomalyBoton3Cristal.fbx" id="26_uypp3"]
+[ext_resource type="Script" uid="uid://daiy2k1bxmjtj" path="res://scripts/pause_menu.gd" id="27_pause"]
+[ext_resource type="Script" uid="uid://bq7xohlbm6uub" path="res://scripts/camera_views.gd" id="28_views"]
+[ext_resource type="PackedScene" uid="uid://cvm724tbfwbeu" path="res://assets/Palancas/PalancaModelo.fbx" id="29_uypp3"]
+[ext_resource type="Script" uid="uid://ddu037dw5k4vc" path="res://scripts/view_transition.gd" id="29_vtrans"]
+[ext_resource type="Script" uid="uid://clfc7w2c7ecpt" path="res://scripts/view_back_button.gd" id="30_vback"]
+[ext_resource type="Script" uid="uid://u2od523hgpv2" path="res://scripts/split_view.gd" id="31_split"]
+[ext_resource type="Script" uid="uid://b6cfg7rvq2n16" path="res://scripts/mesh_interactable.gd" id="32_meshint"]
+[ext_resource type="Script" uid="uid://b0tj4rok5gs4g" path="res://scripts/pixel_textures.gd" id="33_pxtex"]
+[ext_resource type="Script" uid="uid://cfxl2an2uwfrr" path="res://scripts/control_panel.gd" id="34_cpanel"]
+[ext_resource type="Script" uid="uid://bi47cy7irgljj" path="res://scripts/panel_hud.gd" id="35_phud"]
+[ext_resource type="Script" uid="uid://c7sy0e11b0a3u" path="res://scripts/sliding_cover.gd" id="36_cover"]
+[ext_resource type="Script" uid="uid://d13cycfvpin18" path="res://scripts/phase_button.gd" id="37_pbtn"]
+[ext_resource type="Script" uid="uid://cgn1mtvrowdn3" path="res://scripts/lever_handle.gd" id="38_lever"]
+[ext_resource type="Script" uid="uid://daoeqn1e7r6wt" path="res://scripts/laser_emitter.gd" id="39_laser"]
+[ext_resource type="Script" uid="uid://clhefhybopss7" path="res://scripts/outside_power.gd" id="40_opower"]
+[ext_resource type="Script" uid="uid://8yhtyohf5msh" path="res://scripts/cinematic_bars.gd" id="41_cbars"]
+[ext_resource type="Script" uid="uid://rtwnxhamslt8" path="res://scripts/phase_one.gd" id="42_phase1"]
+[ext_resource type="PackedScene" uid="uid://cnqevin83tpmg" path="res://assets/Palancas/AnomalyPalancasTapa.fbx" id="48_f6a44"]
+[ext_resource type="PackedScene" uid="uid://buhlyka5qmp3u" path="res://assets/Lasers/LaserAnilloRotacion1.fbx" id="53_e71vb"]
+[ext_resource type="PackedScene" uid="uid://dmxdtg3727e4d" path="res://assets/Lasers/LaserGuiadores.fbx" id="54_rnkwl"]
+[ext_resource type="PackedScene" uid="uid://cokurcsjqnitq" path="res://assets/Lasers/LaserInferior.fbx" id="55_vke2r"]
+[ext_resource type="PackedScene" uid="uid://tbcwr5grm0wt" path="res://assets/Lasers/LaserLanzador.fbx" id="56_uit24"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_b1q74"]
 size = Vector3(2.4763794, 1.9730225, 0.56921387)
@@ -58,6 +92,41 @@ shader_parameter/edge_color = Color(1, 0.55, 0.15, 1)
 shader_parameter/edge_width = 0.12
 shader_parameter/noise_mix = 0.35
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ruth0"]
+shader = ExtResource("9_ycdy4")
+shader_parameter/progress = 1.0
+shader_parameter/edge_color = Color(1, 0.55, 0.15, 1)
+shader_parameter/edge_width = 0.12
+shader_parameter/noise_mix = 0.35
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_a6jrf"]
+shader = ExtResource("9_ycdy4")
+shader_parameter/progress = 1.0
+shader_parameter/edge_color = Color(1, 0.55, 0.15, 1)
+shader_parameter/edge_width = 0.12
+shader_parameter/noise_mix = 0.35
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_xuqvo"]
+shader = ExtResource("9_ycdy4")
+shader_parameter/progress = 1.0
+shader_parameter/edge_color = Color(1, 0.55, 0.15, 1)
+shader_parameter/edge_width = 0.12
+shader_parameter/noise_mix = 0.35
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_qsp4k"]
+shader = ExtResource("9_ycdy4")
+shader_parameter/progress = 1.0
+shader_parameter/edge_color = Color(1, 0.55, 0.15, 1)
+shader_parameter/edge_width = 0.12
+shader_parameter/noise_mix = 0.35
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_kq58d"]
+shader = ExtResource("9_ycdy4")
+shader_parameter/progress = 1.0
+shader_parameter/edge_color = Color(1, 0.55, 0.15, 1)
+shader_parameter/edge_width = 0.12
+shader_parameter/noise_mix = 0.35
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_pxqnt"]
 shader = ExtResource("6_pxqnt")
 shader_parameter/color_steps = 16
@@ -76,6 +145,7 @@ bloom_environment = NodePath("../PixelViewport/RoomEnvironment")
 extra_lights = [NodePath("../PixelViewport/Outside/OutsideLights")]
 
 [node name="Sfx" type="Node" parent="." unique_id=1350970948]
+process_mode = 3
 script = ExtResource("13_sfx")
 
 [node name="Music" type="Node" parent="." unique_id=1888876879]
@@ -97,7 +167,7 @@ size = Vector2i(320, 180)
 script = ExtResource("5_pxvpw")
 
 [node name="Camera3D" type="Camera3D" parent="PixelViewport" unique_id=642857347]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.5282243)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.528)
 fov = 54.147915
 
 [node name="StaticBody3D" type="StaticBody3D" parent="PixelViewport" unique_id=1434012075 node_paths=PackedStringArray("look_illusion", "settings", "sfx", "screen_light")]
@@ -154,6 +224,150 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.17254978)
 
 [node name="MapAnomalyPanelBase" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=338039740 instance=ExtResource("19_cegan")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.02666533, 0, 0.007942557)
+
+[node name="PanelDesk" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/MapAnomalyPanelBase" unique_id=1276408833 node_paths=PackedStringArray("views", "model")]
+script = ExtResource("32_meshint")
+views = NodePath("../../../CameraViews")
+view_name = &"Panel"
+model = NodePath("..")
+collision_from_mesh = true
+
+[node name="AnomalyPalancaEnergiaDiagonal" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=1228646523 instance=ExtResource("15_ok6jj")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.025, 0, 0.01)
+
+[node name="AnomalyPalancaEnergiaHorizontal" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=1832435035 instance=ExtResource("16_facbu")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.025, 0, 0.01)
+
+[node name="AnomalyPalancaRefriDiagonal" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=2113634165 instance=ExtResource("17_b1qrp")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.025, 0, 0.01)
+
+[node name="AnomalyPalancaRefriVentilador" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=1748100517 instance=ExtResource("18_come4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.025, 0, 0.01)
+
+[node name="AnomalyBoton1Base" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=1373001485 instance=ExtResource("19_gngh3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.02, -0.015, 0.005)
+
+[node name="AnomalyBoton1Bolita" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=1124368319 instance=ExtResource("20_0n3wm")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.02, -0.015, 0.005)
+
+[node name="PhaseButton" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/AnomalyBoton1Bolita" unique_id=1400000001 node_paths=PackedStringArray("panel", "views", "model")]
+script = ExtResource("37_pbtn")
+panel = NodePath("../../../ControlPanel")
+outline_style = 1
+outline_width = 0.004
+outline_depth_push = 0.003
+hover_energy = 0.5
+views = NodePath("../../../CameraViews")
+model = NodePath("..")
+collision_from_mesh = true
+
+[node name="AnomalyBoton2Base" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=1798051498 instance=ExtResource("21_qnost")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.02, -0.015, 0.005)
+
+[node name="AnomalyBoton2Bolita" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=69643455 instance=ExtResource("22_wnkbs")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.02, -0.015, 0.005)
+
+[node name="PhaseButton" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/AnomalyBoton2Bolita" unique_id=1400000002 node_paths=PackedStringArray("panel", "views", "model")]
+script = ExtResource("37_pbtn")
+panel = NodePath("../../../ControlPanel")
+phase_index = 2
+outline_style = 1
+outline_width = 0.004
+outline_depth_push = 0.003
+hover_energy = 0.5
+views = NodePath("../../../CameraViews")
+model = NodePath("..")
+collision_from_mesh = true
+
+[node name="AnomalyBoton2Cristal" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=482903832 instance=ExtResource("23_f6a44")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.02, 0, 0.005)
+
+[node name="AnomalyBoton3Base" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=1508498890 instance=ExtResource("24_0cbny")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.02, -0.015, 0.005)
+
+[node name="AnomalyBoton3Bolita" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=398863483 instance=ExtResource("25_hrvbo")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.02, -0.015, 0.005)
+
+[node name="PhaseButton" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/AnomalyBoton3Bolita" unique_id=1400000003 node_paths=PackedStringArray("panel", "views", "model")]
+script = ExtResource("37_pbtn")
+panel = NodePath("../../../ControlPanel")
+phase_index = 3
+outline_style = 1
+outline_width = 0.004
+outline_depth_push = 0.003
+hover_energy = 0.5
+views = NodePath("../../../CameraViews")
+model = NodePath("..")
+collision_from_mesh = true
+
+[node name="AnomalyBoton3Cristal" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=2065028787 instance=ExtResource("26_uypp3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.02, 0, 0.005)
+
+[node name="AnomalyPalancasTapa" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=1512087522 instance=ExtResource("48_f6a44")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.035, 0, 0.0025497794)
+
+[node name="PalancaModeloEnergiaHorizontal" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=509129914 instance=ExtResource("29_uypp3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.005, 0, 0.01)
+
+[node name="LeverHandle" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/PalancaModeloEnergiaHorizontal" unique_id=1450000001 node_paths=PackedStringArray("panel", "plate", "views", "model")]
+script = ExtResource("38_lever")
+panel = NodePath("../../../ControlPanel")
+plate = NodePath("../../AnomalyPalancaEnergiaHorizontal")
+outline_style = 1
+outline_width = 0.004
+outline_depth_push = 0.003
+hover_energy = 0.5
+views = NodePath("../../../CameraViews")
+model = NodePath("..")
+collision_from_mesh = true
+
+[node name="PalancaModeloEnergiaDiagonal" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=460839970 instance=ExtResource("29_uypp3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.005, 0, 0.158)
+
+[node name="LeverHandle" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/PalancaModeloEnergiaDiagonal" unique_id=1450000002 node_paths=PackedStringArray("panel", "plate", "views", "model")]
+script = ExtResource("38_lever")
+panel = NodePath("../../../ControlPanel")
+lever_id = &"diagonal"
+plate = NodePath("../../AnomalyPalancaEnergiaDiagonal")
+outline_style = 1
+outline_width = 0.004
+outline_depth_push = 0.003
+hover_energy = 0.5
+views = NodePath("../../../CameraViews")
+model = NodePath("..")
+collision_from_mesh = true
+
+[node name="PalancaModeloRefroVentilador" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=720816177 instance=ExtResource("29_uypp3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.005, 0, 0.305)
+
+[node name="LeverHandle" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/PalancaModeloRefroVentilador" unique_id=1450000003 node_paths=PackedStringArray("panel", "plate", "views", "model")]
+script = ExtResource("38_lever")
+panel = NodePath("../../../ControlPanel")
+lever_id = &"fans"
+plate = NodePath("../../AnomalyPalancaRefriVentilador")
+outline_style = 1
+outline_width = 0.004
+outline_depth_push = 0.003
+hover_energy = 0.5
+views = NodePath("../../../CameraViews")
+model = NodePath("..")
+collision_from_mesh = true
+
+[node name="PalancaModeloRefroVentilador2" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=673182368 instance=ExtResource("29_uypp3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.005, 0, 0.452)
+
+[node name="LeverHandle" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/PalancaModeloRefroVentilador2" unique_id=1450000004 node_paths=PackedStringArray("panel", "plate", "views", "model")]
+script = ExtResource("38_lever")
+panel = NodePath("../../../ControlPanel")
+lever_id = &"shield"
+plate = NodePath("../../AnomalyPalancaRefriDiagonal")
+outline_style = 1
+outline_width = 0.004
+outline_depth_push = 0.003
+hover_energy = 0.5
+views = NodePath("../../../CameraViews")
+model = NodePath("..")
+collision_from_mesh = true
 
 [node name="RoomLights" type="Node3D" parent="PixelViewport" unique_id=1609245325]
 
@@ -225,130 +439,394 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.7582688, 1.6152619, -5.032
 light_energy = 0.8
 light_specular = 0.3
 light_cull_mask = 2
+shadow_enabled = true
 omni_range = 1.6
+omni_attenuation = 0.2
 
 [node name="StripL_Bottom" type="OmniLight3D" parent="PixelViewport/Outside/OutsideLights" unique_id=1703214391]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.7582688, -1.6121867, -5.032385)
 light_energy = 0.8
 light_specular = 0.3
 light_cull_mask = 2
+shadow_enabled = true
 omni_range = 1.6
+omni_attenuation = 0.2
 
 [node name="StripCL_Top" type="OmniLight3D" parent="PixelViewport/Outside/OutsideLights" unique_id=276370082]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.84, 1.6152619, -5.95)
 light_energy = 0.8
 light_specular = 0.3
 light_cull_mask = 2
+shadow_enabled = true
 omni_range = 1.6
+omni_attenuation = 0.2
 
 [node name="StripCL_Bottom" type="OmniLight3D" parent="PixelViewport/Outside/OutsideLights" unique_id=591388921]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.84, -1.6121867, -5.95)
 light_energy = 0.8
 light_specular = 0.3
 light_cull_mask = 2
+shadow_enabled = true
 omni_range = 1.6
+omni_attenuation = 0.2
 
 [node name="StripCR_Top" type="OmniLight3D" parent="PixelViewport/Outside/OutsideLights" unique_id=1950811046]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8031576, 1.6152619, -5.95)
 light_energy = 0.8
 light_specular = 0.3
 light_cull_mask = 2
+shadow_enabled = true
 omni_range = 1.6
+omni_attenuation = 0.2
 
 [node name="StripCR_Bottom" type="OmniLight3D" parent="PixelViewport/Outside/OutsideLights" unique_id=1061532141]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.84, -1.6121867, -5.95)
 light_energy = 0.8
 light_specular = 0.3
 light_cull_mask = 2
+shadow_enabled = true
 omni_range = 1.6
+omni_attenuation = 0.2
 
 [node name="StripR_Top" type="OmniLight3D" parent="PixelViewport/Outside/OutsideLights" unique_id=185084840]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.768789, 1.6152619, -5.0559583)
 light_energy = 0.8
 light_specular = 0.3
 light_cull_mask = 2
+shadow_enabled = true
 omni_range = 1.6
+omni_attenuation = 0.2
 
 [node name="StripL_Top2" type="OmniLight3D" parent="PixelViewport/Outside/OutsideLights" unique_id=554371489]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.7582688, 0.5184525, -5.032385)
 light_energy = 0.8
 light_specular = 0.3
 light_cull_mask = 2
+shadow_enabled = true
 omni_range = 1.6
+omni_attenuation = 0.2
 
 [node name="StripCL_Top2" type="OmniLight3D" parent="PixelViewport/Outside/OutsideLights" unique_id=990319339]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.84, 0.5184525, -5.95)
 light_energy = 0.8
 light_specular = 0.3
 light_cull_mask = 2
+shadow_enabled = true
 omni_range = 1.6
+omni_attenuation = 0.2
 
 [node name="StripCR_Top2" type="OmniLight3D" parent="PixelViewport/Outside/OutsideLights" unique_id=5242764]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8031576, 0.5184525, -5.95)
 light_energy = 0.8
 light_specular = 0.3
 light_cull_mask = 2
+shadow_enabled = true
 omni_range = 1.6
+omni_attenuation = 0.2
 
 [node name="StripR_Top2" type="OmniLight3D" parent="PixelViewport/Outside/OutsideLights" unique_id=432647868]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.768789, 0.5184525, -5.0559583)
 light_energy = 0.8
 light_specular = 0.3
 light_cull_mask = 2
+shadow_enabled = true
 omni_range = 1.6
+omni_attenuation = 0.2
 
 [node name="StripR_Bottom" type="OmniLight3D" parent="PixelViewport/Outside/OutsideLights" unique_id=411452774]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.7371136, -1.6121867, -5.057912)
 light_energy = 0.8
 light_specular = 0.3
 light_cull_mask = 2
+shadow_enabled = true
 omni_range = 1.6
+omni_attenuation = 0.2
 
 [node name="StripL_Bottom2" type="OmniLight3D" parent="PixelViewport/Outside/OutsideLights" unique_id=385436763]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.7582688, -0.5479903, -5.032385)
 light_energy = 0.8
 light_specular = 0.3
 light_cull_mask = 2
+shadow_enabled = true
 omni_range = 1.6
+omni_attenuation = 0.2
 
 [node name="StripCL_Bottom2" type="OmniLight3D" parent="PixelViewport/Outside/OutsideLights" unique_id=366577680]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.84, -0.5479903, -5.95)
 light_energy = 0.8
 light_specular = 0.3
 light_cull_mask = 2
+shadow_enabled = true
 omni_range = 1.6
+omni_attenuation = 0.2
 
 [node name="StripCR_Bottom2" type="OmniLight3D" parent="PixelViewport/Outside/OutsideLights" unique_id=723146330]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.84, -0.5479903, -5.95)
 light_energy = 0.8
 light_specular = 0.3
 light_cull_mask = 2
+shadow_enabled = true
 omni_range = 1.6
+omni_attenuation = 0.2
 
 [node name="StripR_Bottom2" type="OmniLight3D" parent="PixelViewport/Outside/OutsideLights" unique_id=119083140]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.7371136, -0.5479903, -5.057912)
 light_energy = 0.8
 light_specular = 0.3
 light_cull_mask = 2
+shadow_enabled = true
 omni_range = 1.6
+omni_attenuation = 0.2
 
 [node name="OutsideLayers" type="Node" parent="PixelViewport/Outside" unique_id=230899095 node_paths=PackedStringArray("mesh_targets", "light_targets")]
 script = ExtResource("25_layers")
-mesh_targets = [NodePath("../MapAnomalyAfueraBase2"), NodePath("../MapAnomalyAfueraluz")]
+mesh_targets = [NodePath("../MapAnomalyAfueraBase2"), NodePath("../MapAnomalyAfueraluz"), NodePath("../Lasers")]
 mesh_layers = 2
-light_targets = [NodePath("../OutsideLights")]
+light_targets = [NodePath("../OutsideLights"), NodePath("../Lasers")]
 light_mask = 2
+
+[node name="Lasers" type="Node3D" parent="PixelViewport/Outside" unique_id=1733004411]
+
+[node name="LaserLateral1" type="Node3D" parent="PixelViewport/Outside/Lasers" unique_id=1733004412 node_paths=PackedStringArray("walls", "sfx")]
+transform = Transform3D(0.15, 0, 0, 0, -6.5567085e-09, -0.15, 0, 0.15, -6.5567085e-09, -0.016945124, 0, -6.5260463)
+script = ExtResource("39_laser")
+walls = [NodePath("../../MapAnomalyAfueraBase2"), NodePath("../../MapAnomalyAfueraluz")]
+hole_offset = 0.275
+sfx = NodePath("../../../../Sfx")
+
+[node name="Inferior" parent="PixelViewport/Outside/Lasers/LaserLateral1" unique_id=1886927812 instance=ExtResource("55_vke2r")]
+
+[node name="OmniLight3D" type="OmniLight3D" parent="PixelViewport/Outside/Lasers/LaserLateral1/Inferior" unique_id=1581119975]
+transform = Transform3D(6.666666, 0, 0, 0, 6.666666, 0, 0, 0, 6.666666, 0, 4.4493446, -1.9448714e-07)
+light_cull_mask = 2
+shadow_enabled = true
+omni_range = 0.169
+omni_attenuation = 5.0
+
+[node name="AnilloRotacion" parent="PixelViewport/Outside/Lasers/LaserLateral1" unique_id=383221617 instance=ExtResource("53_e71vb")]
+
+[node name="Guiadores" parent="PixelViewport/Outside/Lasers/LaserLateral1" unique_id=1676365267 instance=ExtResource("54_rnkwl")]
+
+[node name="Lanzador" parent="PixelViewport/Outside/Lasers/LaserLateral1" unique_id=1118111608 instance=ExtResource("56_uit24")]
+
+[node name="LaserLateral2" type="Node3D" parent="PixelViewport/Outside/Lasers" unique_id=1733004413 node_paths=PackedStringArray("walls", "sfx")]
+transform = Transform3D(-7.430936e-09, 0.17, -7.430936e-09, 0, -7.430936e-09, -0.17, -0.17, -7.430936e-09, 3.2481652e-16, -2.5364485, 0, -3.554195)
+script = ExtResource("39_laser")
+walls = [NodePath("../../MapAnomalyAfueraBase2"), NodePath("../../MapAnomalyAfueraluz")]
+hole_offset = 0.308
+sfx = NodePath("../../../../Sfx")
+
+[node name="Inferior" parent="PixelViewport/Outside/Lasers/LaserLateral2" unique_id=1226149464 instance=ExtResource("55_vke2r")]
+
+[node name="OmniLight3D" type="OmniLight3D" parent="PixelViewport/Outside/Lasers/LaserLateral2/Inferior" unique_id=1983535917]
+transform = Transform3D(6.666666, 0, 0, 0, 6.666666, 0, 0, 0, 6.666666, 0, 4.4493446, -1.9448714e-07)
+light_cull_mask = 2
+shadow_enabled = true
+omni_range = 0.169
+omni_attenuation = 5.0
+
+[node name="AnilloRotacion" parent="PixelViewport/Outside/Lasers/LaserLateral2" unique_id=1606913350 instance=ExtResource("53_e71vb")]
+
+[node name="Guiadores" parent="PixelViewport/Outside/Lasers/LaserLateral2" unique_id=263916637 instance=ExtResource("54_rnkwl")]
+
+[node name="Lanzador" parent="PixelViewport/Outside/Lasers/LaserLateral2" unique_id=1275015859 instance=ExtResource("56_uit24")]
+
+[node name="LaserLateral3" type="Node3D" parent="PixelViewport/Outside/Lasers" unique_id=1733004414 node_paths=PackedStringArray("walls", "sfx")]
+transform = Transform3D(-7.430936e-09, -0.17, 7.430936e-09, 0, -7.430936e-09, -0.17, 0.17, -7.430936e-09, 3.2481654e-16, 2.558134, 0, -3.554195)
+script = ExtResource("39_laser")
+walls = [NodePath("../../MapAnomalyAfueraBase2"), NodePath("../../MapAnomalyAfueraluz")]
+hole_offset = 0.33
+sfx = NodePath("../../../../Sfx")
+
+[node name="Inferior" parent="PixelViewport/Outside/Lasers/LaserLateral3" unique_id=1568617773 instance=ExtResource("55_vke2r")]
+
+[node name="OmniLight3D" type="OmniLight3D" parent="PixelViewport/Outside/Lasers/LaserLateral3/Inferior" unique_id=1887370898]
+transform = Transform3D(6.666666, 0, 0, 0, 6.666666, 0, 0, 0, 6.666666, 0, 4.4493446, -1.9448714e-07)
+light_cull_mask = 2
+shadow_enabled = true
+omni_range = 0.169
+omni_attenuation = 5.0
+
+[node name="AnilloRotacion" parent="PixelViewport/Outside/Lasers/LaserLateral3" unique_id=1162755544 instance=ExtResource("53_e71vb")]
+
+[node name="Guiadores" parent="PixelViewport/Outside/Lasers/LaserLateral3" unique_id=1863632566 instance=ExtResource("54_rnkwl")]
+
+[node name="Lanzador" parent="PixelViewport/Outside/Lasers/LaserLateral3" unique_id=1796286529 instance=ExtResource("56_uit24")]
+
+[node name="LaserDiagonal1" type="Node3D" parent="PixelViewport/Outside/Lasers" unique_id=1371850433 node_paths=PackedStringArray("walls", "sfx")]
+transform = Transform3D(0.065, -0.06499999, 0.091923885, 0.065, -0.065, -0.09192388, 0.09192388, 0.09192388, -4.0181205e-09, 1.1826707, 1.9134141, -5.5843706)
+script = ExtResource("39_laser")
+walls = [NodePath("../../MapAnomalyAfueraBase2"), NodePath("../../MapAnomalyAfueraluz")]
+hole_offset = 0.33
+sfx = NodePath("../../../../Sfx")
+plasma_deep = Color(0.25, 0.04, 0.55, 1)
+plasma_mid = Color(0.68, 0.28, 1, 1)
+plasma_hot = Color(0.97, 0.86, 1, 1)
+light_color = Color(0.72, 0.38, 1, 1)
+
+[node name="Inferior" parent="PixelViewport/Outside/Lasers/LaserDiagonal1" unique_id=1819272520 instance=ExtResource("55_vke2r")]
+
+[node name="OmniLight3D" type="OmniLight3D" parent="PixelViewport/Outside/Lasers/LaserDiagonal1/Inferior" unique_id=2003866773]
+transform = Transform3D(6.666666, 0, 0, 0, 6.666666, 0, 0, 0, 6.666666, 0, 4.4493446, -1.9448714e-07)
+light_cull_mask = 2
+shadow_enabled = true
+omni_range = 0.169
+omni_attenuation = 5.0
+
+[node name="AnilloRotacion" parent="PixelViewport/Outside/Lasers/LaserDiagonal1" unique_id=568202236 instance=ExtResource("53_e71vb")]
+
+[node name="Guiadores" parent="PixelViewport/Outside/Lasers/LaserDiagonal1" unique_id=1785872379 instance=ExtResource("54_rnkwl")]
+
+[node name="Lanzador" parent="PixelViewport/Outside/Lasers/LaserDiagonal1" unique_id=1700815055 instance=ExtResource("56_uit24")]
+
+[node name="LaserDiagonal2" type="Node3D" parent="PixelViewport/Outside/Lasers" unique_id=988607156 node_paths=PackedStringArray("walls", "sfx")]
+transform = Transform3D(0.105614886, 0.071968414, 0.023791652, 0.065000005, -0.065000005, -0.09192388, -0.038993523, 0.08657682, -0.08879165, -1.1176051, 1.8848282, -5.5843706)
+script = ExtResource("39_laser")
+walls = [NodePath("../../MapAnomalyAfueraBase2"), NodePath("../../MapAnomalyAfueraluz")]
+hole_offset = 0.33
+sfx = NodePath("../../../../Sfx")
+plasma_deep = Color(0.25, 0.04, 0.55, 1)
+plasma_mid = Color(0.68, 0.28, 1, 1)
+plasma_hot = Color(0.97, 0.86, 1, 1)
+light_color = Color(0.72, 0.38, 1, 1)
+
+[node name="Inferior" parent="PixelViewport/Outside/Lasers/LaserDiagonal2" unique_id=187608311 instance=ExtResource("55_vke2r")]
+
+[node name="OmniLight3D" type="OmniLight3D" parent="PixelViewport/Outside/Lasers/LaserDiagonal2/Inferior" unique_id=304477502]
+transform = Transform3D(6.666666, 0, 0, 0, 6.666666, 0, 0, 0, 6.666666, 0, 4.4493446, -1.9448714e-07)
+light_cull_mask = 2
+shadow_enabled = true
+omni_range = 0.169
+omni_attenuation = 5.0
+
+[node name="AnilloRotacion" parent="PixelViewport/Outside/Lasers/LaserDiagonal2" unique_id=57613481 instance=ExtResource("53_e71vb")]
+
+[node name="Guiadores" parent="PixelViewport/Outside/Lasers/LaserDiagonal2" unique_id=903788877 instance=ExtResource("54_rnkwl")]
+
+[node name="Lanzador" parent="PixelViewport/Outside/Lasers/LaserDiagonal2" unique_id=486697960 instance=ExtResource("56_uit24")]
+
+[node name="LaserDiagonal3" type="Node3D" parent="PixelViewport/Outside/Lasers" unique_id=161930656 node_paths=PackedStringArray("walls", "sfx")]
+transform = Transform3D(0.06499999, -0.06499998, 0.09192389, 0.09192387, 0.091923885, -7.3761717e-09, -0.065, 0.065, 0.09192387, 1.1826707, -1.9271975, -5.5986633)
+script = ExtResource("39_laser")
+walls = [NodePath("../../MapAnomalyAfueraBase2"), NodePath("../../MapAnomalyAfueraluz")]
+hole_offset = 0.33
+sfx = NodePath("../../../../Sfx")
+plasma_deep = Color(0.25, 0.04, 0.55, 1)
+plasma_mid = Color(0.68, 0.28, 1, 1)
+plasma_hot = Color(0.97, 0.86, 1, 1)
+light_color = Color(0.72, 0.38, 1, 1)
+
+[node name="Inferior" parent="PixelViewport/Outside/Lasers/LaserDiagonal3" unique_id=2027756252 instance=ExtResource("55_vke2r")]
+
+[node name="OmniLight3D" type="OmniLight3D" parent="PixelViewport/Outside/Lasers/LaserDiagonal3/Inferior" unique_id=469325126]
+transform = Transform3D(6.666666, 0, 0, 0, 6.666666, 0, 0, 0, 6.666666, 0, 4.4493446, -1.9448714e-07)
+light_cull_mask = 2
+shadow_enabled = true
+omni_range = 0.169
+omni_attenuation = 5.0
+
+[node name="AnilloRotacion" parent="PixelViewport/Outside/Lasers/LaserDiagonal3" unique_id=387576544 instance=ExtResource("53_e71vb")]
+
+[node name="Guiadores" parent="PixelViewport/Outside/Lasers/LaserDiagonal3" unique_id=222107499 instance=ExtResource("54_rnkwl")]
+
+[node name="Lanzador" parent="PixelViewport/Outside/Lasers/LaserDiagonal3" unique_id=781565216 instance=ExtResource("56_uit24")]
+
+[node name="LaserDiagonal4" type="Node3D" parent="PixelViewport/Outside/Lasers" unique_id=2133976699 node_paths=PackedStringArray("walls", "sfx")]
+transform = Transform3D(0.10561488, 0.07196841, 0.023791656, -0.038993523, 0.08657682, -0.08879164, -0.065000005, 0.06499998, 0.09192388, -1.1176051, -1.9271975, -5.570078)
+script = ExtResource("39_laser")
+walls = [NodePath("../../MapAnomalyAfueraBase2"), NodePath("../../MapAnomalyAfueraluz")]
+hole_offset = 0.33
+sfx = NodePath("../../../../Sfx")
+plasma_deep = Color(0.25, 0.04, 0.55, 1)
+plasma_mid = Color(0.68, 0.28, 1, 1)
+plasma_hot = Color(0.97, 0.86, 1, 1)
+light_color = Color(0.72, 0.38, 1, 1)
+
+[node name="Inferior" parent="PixelViewport/Outside/Lasers/LaserDiagonal4" unique_id=367567813 instance=ExtResource("55_vke2r")]
+
+[node name="OmniLight3D" type="OmniLight3D" parent="PixelViewport/Outside/Lasers/LaserDiagonal4/Inferior" unique_id=894138417]
+transform = Transform3D(6.666666, 0, 0, 0, 6.666666, 0, 0, 0, 6.666666, 0, 4.4493446, -1.9448714e-07)
+light_cull_mask = 2
+shadow_enabled = true
+omni_range = 0.169
+omni_attenuation = 5.0
+
+[node name="AnilloRotacion" parent="PixelViewport/Outside/Lasers/LaserDiagonal4" unique_id=113994204 instance=ExtResource("53_e71vb")]
+
+[node name="Guiadores" parent="PixelViewport/Outside/Lasers/LaserDiagonal4" unique_id=2087489986 instance=ExtResource("54_rnkwl")]
+
+[node name="Lanzador" parent="PixelViewport/Outside/Lasers/LaserDiagonal4" unique_id=1259613736 instance=ExtResource("56_uit24")]
+
+[node name="OutsidePower" type="Node" parent="PixelViewport/Outside" unique_id=1733004420 node_paths=PackedStringArray("strips", "lights", "portal_glow", "sfx")]
+script = ExtResource("40_opower")
+strips = NodePath("../MapAnomalyAfueraluz")
+lights = NodePath("../OutsideLights")
+portal_glow = NodePath("../GlowPortal")
+sfx = NodePath("../../../Sfx")
 
 [node name="RoomLayers" type="Node" parent="PixelViewport" unique_id=1487064138 node_paths=PackedStringArray("light_targets")]
 script = ExtResource("25_layers")
 light_targets = [NodePath("../RoomLights")]
 
-[node name="Crystal" type="StaticBody3D" parent="PixelViewport" unique_id=610720824 node_paths=PackedStringArray("model")]
+[node name="Crystal" type="StaticBody3D" parent="PixelViewport" unique_id=610720824 node_paths=PackedStringArray("views", "model")]
 script = ExtResource("26_crystal")
+views = NodePath("../CameraViews")
 model = NodePath("MapAnomalyCrystal")
 
 [node name="MapAnomalyCrystal" parent="PixelViewport/Crystal" unique_id=1918376115 instance=ExtResource("24_1u8w0")]
 transform = Transform3D(0.9995891, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.17027092)
+
+[node name="CameraViews" type="Node3D" parent="PixelViewport" unique_id=1733520846 node_paths=PackedStringArray("camera", "transition", "back_button", "split_view", "sfx", "home_interactables")]
+script = ExtResource("28_views")
+camera = NodePath("../Camera3D")
+transition = NodePath("../TransitionLayer/ViewTransition")
+back_button = NodePath("../HudLayer/BackButton")
+split_view = NodePath("../SplitLayer/SplitView")
+sfx = NodePath("../../Sfx")
+home_interactables = [NodePath("../Crystal"), NodePath("../MapAnomalyPlayerRoom/MapAnomalyPanelBase/PanelDesk")]
+
+[node name="Room" type="Marker3D" parent="PixelViewport/CameraViews" unique_id=455190312]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.528)
+
+[node name="Window" type="Marker3D" parent="PixelViewport/CameraViews" unique_id=2089645531]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.37, -0.035)
+
+[node name="Panel" type="Marker3D" parent="PixelViewport/CameraViews" unique_id=1914227318]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.53, -0.035)
+
+[node name="PaneCamera" type="Marker3D" parent="PixelViewport/CameraViews/Panel" unique_id=309551740]
+transform = Transform3D(0, -0.9848078, 0.1736482, 0, 0.1736482, 0.9848078, -1, 0, 0, -1.3458111, 0.56088465, -0.4175)
+
+[node name="ControlPanel" type="Node" parent="PixelViewport" unique_id=1943201178 node_paths=PackedStringArray("lever_lateral", "lever_diagonal", "lever_fans", "lever_shield", "phase_buttons", "button_covers", "lever_cover")]
+script = ExtResource("34_cpanel")
+lever_lateral = NodePath("../MapAnomalyPlayerRoom/AnomalyPalancaEnergiaHorizontal")
+lever_diagonal = NodePath("../MapAnomalyPlayerRoom/AnomalyPalancaEnergiaDiagonal")
+lever_fans = NodePath("../MapAnomalyPlayerRoom/AnomalyPalancaRefriVentilador")
+lever_shield = NodePath("../MapAnomalyPlayerRoom/AnomalyPalancaRefriDiagonal")
+phase_buttons = [NodePath("../MapAnomalyPlayerRoom/AnomalyBoton1Bolita"), NodePath("../MapAnomalyPlayerRoom/AnomalyBoton2Bolita"), NodePath("../MapAnomalyPlayerRoom/AnomalyBoton3Bolita")]
+button_covers = [NodePath("Button2Cover"), NodePath("Button3Cover")]
+lever_cover = NodePath("LeverCover")
+
+[node name="Button2Cover" type="Node" parent="PixelViewport/ControlPanel" unique_id=1522040661 node_paths=PackedStringArray("target", "sfx")]
+script = ExtResource("36_cover")
+target = NodePath("../../MapAnomalyPlayerRoom/AnomalyBoton2Cristal")
+opacity = 0.4
+sfx = NodePath("../../../Sfx")
+
+[node name="Button3Cover" type="Node" parent="PixelViewport/ControlPanel" unique_id=1522040662 node_paths=PackedStringArray("target", "sfx")]
+script = ExtResource("36_cover")
+target = NodePath("../../MapAnomalyPlayerRoom/AnomalyBoton3Cristal")
+opacity = 0.4
+sfx = NodePath("../../../Sfx")
+
+[node name="LeverCover" type="Node" parent="PixelViewport/ControlPanel" unique_id=1522040663 node_paths=PackedStringArray("target", "sfx")]
+script = ExtResource("36_cover")
+target = NodePath("../../MapAnomalyPlayerRoom/AnomalyPalancasTapa")
+sfx = NodePath("../../../Sfx")
+
+[node name="PixelTextures" type="Node" parent="PixelViewport" unique_id=1650372941 node_paths=PackedStringArray("targets")]
+script = ExtResource("33_pxtex")
+targets = [NodePath("../MapAnomalyPlayerRoom")]
 
 [node name="RoomEnvironment" type="WorldEnvironment" parent="PixelViewport" unique_id=1332672965]
 environment = SubResource("Environment_82xsv")
@@ -390,6 +868,126 @@ anchors_preset = 0
 script = ExtResource("11_mbtn")
 text = "ENDINGS"
 
+[node name="SplitLayer" type="CanvasLayer" parent="PixelViewport" unique_id=1507739214]
+layer = 3
+
+[node name="SplitView" type="Control" parent="PixelViewport/SplitLayer" unique_id=2024968457]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("31_split")
+
+[node name="PanelHud" type="Control" parent="PixelViewport/SplitLayer/SplitView" unique_id=1302846150 node_paths=PackedStringArray("panel")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("35_phud")
+panel = NodePath("../../../ControlPanel")
+
+[node name="HudLayer" type="CanvasLayer" parent="PixelViewport" unique_id=1190482263]
+layer = 4
+
+[node name="BackButton" type="Control" parent="PixelViewport/HudLayer" unique_id=736450921 node_paths=PackedStringArray("sfx")]
+material = SubResource("ShaderMaterial_ruth0")
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("30_vback")
+sfx = NodePath("../../../Sfx")
+
+[node name="CinematicLayer" type="CanvasLayer" parent="PixelViewport" unique_id=1733004430]
+layer = 5
+
+[node name="CinematicBars" type="Control" parent="PixelViewport/CinematicLayer" unique_id=1733004431 node_paths=PackedStringArray("sfx")]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("41_cbars")
+sfx = NodePath("../../../Sfx")
+
+[node name="PhaseOne" type="Node" parent="PixelViewport" unique_id=1733004432 node_paths=PackedStringArray("panel", "views", "bars", "outside", "lasers", "diagonal_lasers")]
+script = ExtResource("42_phase1")
+panel = NodePath("../ControlPanel")
+views = NodePath("../CameraViews")
+bars = NodePath("../CinematicLayer/CinematicBars")
+outside = NodePath("../Outside/OutsidePower")
+lasers = [NodePath("../Outside/Lasers/LaserLateral1"), NodePath("../Outside/Lasers/LaserLateral2"), NodePath("../Outside/Lasers/LaserLateral3")]
+diagonal_lasers = [NodePath("../Outside/Lasers/LaserDiagonal1"), NodePath("../Outside/Lasers/LaserDiagonal2"), NodePath("../Outside/Lasers/LaserDiagonal3"), NodePath("../Outside/Lasers/LaserDiagonal4")]
+
+[node name="TransitionLayer" type="CanvasLayer" parent="PixelViewport" unique_id=1560937702]
+layer = 6
+
+[node name="ViewTransition" type="ColorRect" parent="PixelViewport/TransitionLayer" unique_id=843307715 node_paths=PackedStringArray("settings")]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+script = ExtResource("29_vtrans")
+settings = NodePath("../../../GameSettings")
+
+[node name="PauseLayer" type="CanvasLayer" parent="PixelViewport" unique_id=1844290417]
+process_mode = 3
+layer = 8
+
+[node name="PauseMenu" type="Control" parent="PixelViewport/PauseLayer" unique_id=402918377 node_paths=PackedStringArray("sfx", "fade")]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("27_pause")
+sfx = NodePath("../../../Sfx")
+fade = NodePath("../../FlashLayer/Flash")
+
+[node name="ResumeButton" type="Control" parent="PixelViewport/PauseLayer/PauseMenu" unique_id=1283374650]
+material = SubResource("ShaderMaterial_a6jrf")
+anchors_preset = 0
+script = ExtResource("11_mbtn")
+text = "RESUME"
+primary = true
+
+[node name="MainMenuButton" type="Control" parent="PixelViewport/PauseLayer/PauseMenu" unique_id=917364422]
+material = SubResource("ShaderMaterial_xuqvo")
+anchors_preset = 0
+script = ExtResource("11_mbtn")
+text = "MAIN MENU"
+
+[node name="ConfirmButton" type="Control" parent="PixelViewport/PauseLayer/PauseMenu" unique_id=1570936118]
+material = SubResource("ShaderMaterial_qsp4k")
+anchors_preset = 0
+script = ExtResource("11_mbtn")
+text = "CONFIRM"
+primary = true
+
+[node name="CancelButton" type="Control" parent="PixelViewport/PauseLayer/PauseMenu" unique_id=66204917]
+material = SubResource("ShaderMaterial_kq58d")
+anchors_preset = 0
+script = ExtResource("11_mbtn")
+text = "CANCEL"
+
 [node name="FlashLayer" type="CanvasLayer" parent="PixelViewport" unique_id=1762729786]
 layer = 10
 
@@ -402,18 +1000,21 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Display" type="TextureRect" parent="." unique_id=1171642044 node_paths=PackedStringArray("pixel_viewport")]
+[node name="Display" type="TextureRect" parent="." unique_id=1171642044 node_paths=PackedStringArray("pixel_viewport", "views")]
+process_mode = 3
 texture_filter = 1
 material = SubResource("ShaderMaterial_pxqnt")
 offset_right = 320.0
 offset_bottom = 180.0
 script = ExtResource("4_1bvp3")
 pixel_viewport = NodePath("../PixelViewport")
+views = NodePath("../PixelViewport/CameraViews")
 
 [node name="DebugOrbit" type="Node" parent="." unique_id=30268992 node_paths=PackedStringArray("target")]
 script = ExtResource("7_dbgorb")
 target = NodePath("../PixelViewport/BlackHole")
 
+[connection signal="room_revealed" from="GameIntro" to="PixelViewport/PauseLayer/PauseMenu" method="enable"]
 [connection signal="view_cleared" from="PixelViewport/StaticBody3D" to="Music" method="start"]
 [connection signal="view_cleared" from="PixelViewport/StaticBody3D" to="PixelViewport/MenuLayer/MainMenu" method="appear"]
 [connection signal="enter_pressed" from="PixelViewport/MenuLayer/MainMenu" to="Music" method="stop"]

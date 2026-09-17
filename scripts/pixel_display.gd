@@ -6,6 +6,9 @@ extends TextureRect
 # art, por mucho que la resolucion interna sea baja.
 
 @export var pixel_viewport: SubViewport
+## Nodo con camera_views.gd (opcional): en pantalla dividida, el rayo sale de
+## la camara que haya bajo el puntero.
+@export var views: Node
 
 ## Resolucion interna objetivo. En modo fill_window solo manda la altura.
 @export var base_size: Vector2i = Vector2i(320, 180)
@@ -24,6 +27,12 @@ extends TextureRect
 
 var _scale: int = 1
 var _hovered: Object
+## Objeto que se esta arrastrando (on_drag_start devolvio true) y la camara
+## con la que empezo: el rayo sigue saliendo de ella aunque el puntero cruce a
+## la otra mitad de la pantalla dividida.
+var _dragging: Object
+var _drag_camera: Camera3D
+var _drag_offset: Vector2
 
 func _ready() -> void:
 	texture = pixel_viewport.get_texture()
@@ -61,6 +70,8 @@ func _update_layout() -> void:
 func _gui_input(event: InputEvent) -> void:
 	if not event is InputEventMouse:
 		return
+	if _dragging and _handle_drag(event):
+		return
 	# Primero la UI que vive dentro del viewport pixelado (menu). Si la consume,
 	# no se lanza el rayo 3D.
 	if _forward_to_viewport(event):
@@ -77,13 +88,44 @@ func _gui_input(event: InputEvent) -> void:
 	match event.button_index:
 		MOUSE_BUTTON_LEFT:
 			var result := _pick(event.position)
-			if result and result.collider.has_method("on_clicked"):
-				result.collider.on_clicked(result.position)
+			if not result:
+				return
+			var collider: Object = result.collider
+			if collider.has_method("on_drag_start") and collider.on_drag_start(result.position):
+				_dragging = collider
+				var view := _camera_for(event.position / float(_scale))
+				_drag_camera = view.get("camera")
+				_drag_offset = event.position / float(_scale) - view.get("position", Vector2.ZERO)
+			elif collider.has_method("on_clicked"):
+				collider.on_clicked(result.position)
 		MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN:
 			var result := _pick(event.position)
 			if result and result.collider.has_method("on_wheel"):
 				var direction := 1 if event.button_index == MOUSE_BUTTON_WHEEL_UP else -1
 				result.collider.on_wheel(result.position, direction)
+
+## Mientras hay un arrastre, el movimiento y el soltar van al objeto
+## capturado (sin hover ni UI). Devuelve true si consumio el evento.
+func _handle_drag(event: InputEventMouse) -> bool:
+	if not is_instance_valid(_dragging) or get_tree().paused:
+		_end_drag()
+		return false
+	if event is InputEventMouseMotion:
+		var p: Vector2 = event.position / float(_scale) - _drag_offset
+		if _drag_camera:
+			_dragging.on_drag(_drag_camera.project_ray_origin(p), _drag_camera.project_ray_normal(p))
+		return true
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT \
+			and not event.pressed:
+		_end_drag()
+		return true
+	return false
+
+func _end_drag() -> void:
+	if is_instance_valid(_dragging) and _dragging.has_method("on_drag_end"):
+		_dragging.on_drag_end()
+	_dragging = null
+	_drag_camera = null
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_MOUSE_EXIT:
@@ -136,7 +178,9 @@ func _pick(screen_position: Vector2) -> Dictionary:
 			or mapped_position.x >= viewport_size.x or mapped_position.y >= viewport_size.y:
 		return {}
 
-	var camera := pixel_viewport.get_camera_3d()
+	var view := _camera_for(mapped_position)
+	var camera: Camera3D = view.get("camera")
+	mapped_position = view.get("position", mapped_position)
 	if camera == null:
 		return {}
 
@@ -145,3 +189,9 @@ func _pick(screen_position: Vector2) -> Dictionary:
 
 	var query := PhysicsRayQueryParameters3D.create(ray_origin, ray_origin + ray_direction * 1000.0)
 	return pixel_viewport.find_world_3d().direct_space_state.intersect_ray(query)
+
+## Camara bajo un punto del PixelViewport y el punto en su propio viewport.
+func _camera_for(mapped_position: Vector2) -> Dictionary:
+	if views:
+		return views.camera_at(mapped_position)
+	return {"camera": pixel_viewport.get_camera_3d(), "position": mapped_position}

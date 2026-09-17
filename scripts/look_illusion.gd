@@ -85,6 +85,22 @@ func play() -> void:
 		target.visible = false
 	finished.emit()
 
+## Como play() pero instantaneo: el target queda fuera de cuadro sin animar.
+func snap_away() -> void:
+	if _playing or _away or target == null or camera == null:
+		return
+	_rest = target.global_transform
+	var target_deg := look_up_degrees
+	if target_deg <= 0.0:
+		target_deg = _angle_to_clear() + look_margin_degrees
+	_goal = deg_to_rad(minf(target_deg, 85.0))
+	_pitch = _goal
+	_roll = 0.0
+	_apply()
+	_away = true
+	if hide_when_done:
+		target.visible = false
+
 ## Baja la mirada de vuelta: el target vuelve exactamente a donde estaba.
 func play_back() -> void:
 	if _playing or not _away or target == null or camera == null:
