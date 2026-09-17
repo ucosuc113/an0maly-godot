@@ -27,6 +27,8 @@ extends Node
 ## [{mesh, rest (Transform3D en el padre), pivot, axis, dir}]
 var _fans: Array = []
 var _angle: float = 0.0
+## [StandardMaterial3D, energia base]
+var _lit: Array = []
 
 func _ready() -> void:
 	var dir := 1.0
@@ -109,6 +111,13 @@ func _add_self_light(mi: MeshInstance3D, amount: float) -> void:
 		m.emission = base.albedo_color
 		m.emission_energy_multiplier = amount
 		mi.set_surface_override_material(s, m)
+		_lit.append([m, amount])
+
+## Escala el brillo propio (0 = sin brillo, p. ej. en el apagon).
+func fade_self_light(scale: float, time: float) -> void:
+	var t := create_tween().set_parallel()
+	for pair in _lit:
+		t.tween_property(pair[0], "emission_energy_multiplier", pair[1] * scale, time)
 
 func _process(delta: float) -> void:
 	if sim == null or _fans.is_empty():

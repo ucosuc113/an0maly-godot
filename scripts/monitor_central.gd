@@ -33,7 +33,7 @@ func _draw_header() -> void:
 	if alarm > 0:
 		col = WARN if alarm == 2 or fmod(time, 0.8) < 0.55 else WARN.darkened(0.5)
 		t = "⚠ " + t + " ⚠"
-	elif sim.shield_forming:
+	elif sim.shield_forming or sim.singularity_forming:
 		col = COOL if fmod(time, 0.8) < 0.55 else COOL.darkened(0.4)
 	elif sim.lasers_online:
 		col = OK

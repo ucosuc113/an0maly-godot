@@ -20,9 +20,10 @@ signal track_finished
 @export_file("*.mp3", "*.ogg", "*.wav") var background_path: String = ""
 var background: AudioStream
 @export var bus: StringName = &"Music"
-## El archivo esta masterizado a ~-17 dBFS RMS: -18 lo deja de fondo.
-@export_range(-40.0, 0.0, 0.5) var background_volume_db: float = -18.0
-@export var background_fade_in: float = 6.0
+## El archivo esta masterizado bajo (~-17 dBFS RMS): -8 lo deja de fondo,
+## parejo con la musica del menu.
+@export_range(-40.0, 0.0, 0.5) var background_volume_db: float = -8.0
+@export var background_fade_in: float = 3.0
 @export var background_fade_out: float = 1.8
 
 var _bg: AudioStreamPlayer

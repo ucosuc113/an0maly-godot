@@ -27,6 +27,8 @@ var shield_online: bool = false
 var singularity_online: bool = false
 ## Fase 2 en curso: el escudo existe pero todavia se esta formando.
 var shield_forming: bool = false
+## Fase 3 en curso: la singularidad se esta formando (antes del drop).
+var singularity_forming: bool = false
 
 # --- Valores (objetivo / real) ------------------------------------------------------
 var lat_goal: float = 0.0
@@ -147,6 +149,8 @@ func _update_status() -> void:
 		s = &"EMITTERS ONLINE"
 	if shield_online:
 		s = &"SHIELD FORMING" if shield_forming else &"SHIELD STABLE"
+	if singularity_forming:
+		s = &"SINGULARITY FORMING"
 	if singularity_online:
 		s = &"SINGULARITY STABLE"
 	if shield_online and shield_integrity < 70.0:

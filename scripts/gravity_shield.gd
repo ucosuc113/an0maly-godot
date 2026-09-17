@@ -19,6 +19,12 @@ const HALO_SHADER = preload("res://shaders/plasma_halo.gdshader")
 @export var radius: float = 0.5
 @export var color: Color = Color(0.35, 0.8, 1.0)
 @export var rim_color: Color = Color(0.7, 0.95, 1.0)
+## Brillo general del escudo.
+@export var brightness: float = 1.5:
+	set(value):
+		brightness = value
+		if _mat:
+			_mat.set_shader_parameter("brightness", value)
 ## Nodo con game_settings.gd: con REDUCE FLASHING los destellos se suavizan.
 @export var settings: Node
 
@@ -42,6 +48,12 @@ var flash_amount: float = 0.0:
 	set(value):
 		flash_amount = value
 		_mat.set_shader_parameter("flash", value)
+## 0..1: el escudo se comprime (se achica un cuarto y la reticula se tensa).
+var compression: float = 0.0:
+	set(value):
+		compression = value
+		_mat.set_shader_parameter("compression", value)
+		get_node("Shield").scale = Vector3.ONE * (1.0 - value * 0.25)
 var seed_size: float = 0.0:
 	set(value):
 		seed_size = value
@@ -56,6 +68,7 @@ func _ready() -> void:
 	_mat.shader = SHIELD_SHADER
 	_mat.set_shader_parameter("color", color)
 	_mat.set_shader_parameter("rim_color", rim_color)
+	_mat.set_shader_parameter("brightness", brightness)
 	var mesh := SphereMesh.new()
 	mesh.radius = radius
 	mesh.height = radius * 2.0
@@ -129,6 +142,11 @@ func build_to(value: float, time: float) -> Tween:
 func density_to(value: float, time: float) -> Tween:
 	var t := create_tween()
 	t.tween_property(self, "density", value, time).set_trans(Tween.TRANS_SINE)
+	return t
+
+func compress_to(value: float, time: float) -> Tween:
+	var t := create_tween()
+	t.tween_property(self, "compression", value, time).set_trans(Tween.TRANS_SINE)
 	return t
 
 func ripple(dir: Vector3) -> void:

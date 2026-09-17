@@ -32,6 +32,8 @@ const CUT_LEAD := 0.23
 @export var music: Node
 @export var sim: Node
 @export var shield: Node3D
+## Nodo con lighting_director.gd: baja lo que brilla para que resalte el escudo.
+@export var lighting: Node
 @export_file("*.mp3", "*.ogg", "*.wav") var track_path: String = ""
 @export_range(-30.0, 0.0, 0.5) var track_volume_db: float = -7.0
 ## Volumen de la pista cuando termina la cinematica (sigue sonando).
@@ -72,8 +74,10 @@ func _run() -> void:
 	await _wait_frames(2)
 	views.cinematic = true
 	views.go_to(cinematic_view)
+	if lighting:
+		lighting.dim_for_shield(6.0)
 	for l in lateral_lasers + diagonal_lasers:
-		l.charge_up(1.25, 6.0)
+		l.charge_up(1.0, 6.0)
 
 	# --- Intro ---------------------------------------------------------------
 	await _at(FIRST_BAR)
@@ -138,7 +142,7 @@ func _run() -> void:
 	shield.seed_to(0.2, 1.6, 0.4)
 	_pulse_all(1.6)
 	for l in lateral_lasers + diagonal_lasers:
-		l.set_beam(1.6, 0.3)
+		l.set_beam(1.3, 0.3)
 	views.shake(0.012, 0.5)
 	_play("shield_ignite")
 	for k in [21, 22, 23]:
@@ -167,7 +171,7 @@ func _run() -> void:
 	# Tension: todo sube hacia el climax.
 	for l in lateral_lasers + diagonal_lasers:
 		l.set_beam(1.8, BAR)
-		l.charge_up(1.6, BAR)
+		l.charge_up(1.3, BAR)
 	shield.density_to(0.85, BAR)
 	shield.seed_to(0.24, 2.0, BAR)
 

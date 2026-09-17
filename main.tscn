@@ -62,12 +62,15 @@
 [ext_resource type="Script" uid="uid://b2pyfo6wigx8n" path="res://scripts/monitor_right.gd" id="47_mright"]
 [ext_resource type="PackedScene" uid="uid://cnqevin83tpmg" path="res://assets/Palancas/AnomalyPalancasTapa.fbx" id="48_f6a44"]
 [ext_resource type="Script" uid="uid://ge5c27lgjciq" path="res://scripts/monitor_nav.gd" id="48_mnav"]
-[ext_resource type="Script" path="res://scripts/game_music.gd" id="49_gmusic"]
-[ext_resource type="Script" path="res://scripts/fan_spinner.gd" id="50_fans"]
-[ext_resource type="Script" path="res://scripts/gravity_shield.gd" id="51_shield"]
-[ext_resource type="Script" path="res://scripts/phase_two.gd" id="52_phase2"]
+[ext_resource type="Script" uid="uid://bq4fpukfkiak4" path="res://scripts/game_music.gd" id="49_gmusic"]
+[ext_resource type="Script" uid="uid://0hngdst5q3hd" path="res://scripts/fan_spinner.gd" id="50_fans"]
+[ext_resource type="Script" uid="uid://me61oan72jo7" path="res://scripts/gravity_shield.gd" id="51_shield"]
+[ext_resource type="Script" uid="uid://cwyg7li6hwqdk" path="res://scripts/phase_two.gd" id="52_phase2"]
 [ext_resource type="PackedScene" uid="uid://buhlyka5qmp3u" path="res://assets/Lasers/LaserAnilloRotacion1.fbx" id="53_e71vb"]
+[ext_resource type="Script" uid="uid://c8osw8s7oavqe" path="res://scripts/lighting_director.gd" id="53_light"]
+[ext_resource type="Script" uid="uid://c7vjrhv682t43" path="res://scripts/black_hole_driver.gd" id="54_bhdrv"]
 [ext_resource type="PackedScene" uid="uid://dmxdtg3727e4d" path="res://assets/Lasers/LaserGuiadores.fbx" id="54_rnkwl"]
+[ext_resource type="Script" uid="uid://bjivlx350o8qh" path="res://scripts/phase_three.gd" id="55_phase3"]
 [ext_resource type="PackedScene" uid="uid://cokurcsjqnitq" path="res://assets/Lasers/LaserInferior.fbx" id="55_vke2r"]
 [ext_resource type="PackedScene" uid="uid://tbcwr5grm0wt" path="res://assets/Lasers/LaserLanzador.fbx" id="56_uit24"]
 [ext_resource type="PackedScene" uid="uid://ddcalvickbsrr" path="res://assets/MonitorCentral.fbx" id="61_sm6fg"]
@@ -108,7 +111,7 @@ shader_parameter/edge_color = Color(1, 0.55, 0.15, 1)
 shader_parameter/edge_width = 0.12
 shader_parameter/noise_mix = 0.35
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_c2n8d"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_phcyf"]
 shader = ExtResource("9_ycdy4")
 shader_parameter/progress = 1.0
 shader_parameter/edge_color = Color(1, 0.55, 0.15, 1)
@@ -982,7 +985,7 @@ panel = NodePath("../../../ControlPanel")
 layer = 4
 
 [node name="BackButton" type="Control" parent="PixelViewport/HudLayer" unique_id=736450921 node_paths=PackedStringArray("sfx")]
-material = SubResource("ShaderMaterial_c2n8d")
+material = SubResource("ShaderMaterial_phcyf")
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -1031,7 +1034,7 @@ diagonal_lasers = [NodePath("../Outside/Lasers/LaserDiagonal1"), NodePath("../Ou
 sim = NodePath("../ReactorSim")
 monitors = [NodePath("../MapAnomalyPlayerRoom/MonitorIzq/MonitorBody"), NodePath("../MapAnomalyPlayerRoom/MonitorCentral/MonitorBody"), NodePath("../MapAnomalyPlayerRoom/MonitorDer/MonitorBody")]
 
-[node name="PhaseTwo" type="Node" parent="PixelViewport" unique_id=1780000005 node_paths=PackedStringArray("panel", "views", "bars", "music", "sim", "shield", "lateral_lasers", "diagonal_lasers")]
+[node name="PhaseTwo" type="Node" parent="PixelViewport" unique_id=1780000005 node_paths=PackedStringArray("panel", "views", "bars", "music", "sim", "shield", "lighting", "lateral_lasers", "diagonal_lasers")]
 script = ExtResource("52_phase2")
 panel = NodePath("../ControlPanel")
 views = NodePath("../CameraViews")
@@ -1039,7 +1042,38 @@ bars = NodePath("../CinematicLayer/CinematicBars")
 music = NodePath("../../GameMusic")
 sim = NodePath("../ReactorSim")
 shield = NodePath("../Outside/GravityShield")
+lighting = NodePath("../Lighting")
 track_path = "res://assets/Musica/Interfacing.mp3"
+lateral_lasers = [NodePath("../Outside/Lasers/LaserLateral1"), NodePath("../Outside/Lasers/LaserLateral2"), NodePath("../Outside/Lasers/LaserLateral3")]
+diagonal_lasers = [NodePath("../Outside/Lasers/LaserDiagonal1"), NodePath("../Outside/Lasers/LaserDiagonal2"), NodePath("../Outside/Lasers/LaserDiagonal3"), NodePath("../Outside/Lasers/LaserDiagonal4")]
+
+[node name="Lighting" type="Node" parent="PixelViewport" unique_id=1790000001 node_paths=PackedStringArray("room_lights", "environment", "intro", "outside", "fans", "lasers", "sfx")]
+script = ExtResource("53_light")
+room_lights = NodePath("../RoomLights")
+environment = NodePath("../RoomEnvironment")
+intro = NodePath("../../GameIntro")
+outside = NodePath("../Outside/OutsidePower")
+fans = NodePath("../Outside/Fans/FanSpinner")
+lasers = [NodePath("../Outside/Lasers/LaserLateral1"), NodePath("../Outside/Lasers/LaserLateral2"), NodePath("../Outside/Lasers/LaserLateral3"), NodePath("../Outside/Lasers/LaserDiagonal1"), NodePath("../Outside/Lasers/LaserDiagonal2"), NodePath("../Outside/Lasers/LaserDiagonal3"), NodePath("../Outside/Lasers/LaserDiagonal4")]
+sfx = NodePath("../../Sfx")
+
+[node name="BlackHoleDriver" type="Node" parent="PixelViewport" unique_id=1790000002 node_paths=PackedStringArray("black_hole", "sim", "anchor")]
+script = ExtResource("54_bhdrv")
+black_hole = NodePath("../BlackHole")
+sim = NodePath("../ReactorSim")
+anchor = NodePath("../Outside/GravityShield")
+
+[node name="PhaseThree" type="Node" parent="PixelViewport" unique_id=1790000003 node_paths=PackedStringArray("panel", "views", "bars", "music", "sim", "shield", "lighting", "driver", "lateral_lasers", "diagonal_lasers")]
+script = ExtResource("55_phase3")
+panel = NodePath("../ControlPanel")
+views = NodePath("../CameraViews")
+bars = NodePath("../CinematicLayer/CinematicBars")
+music = NodePath("../../GameMusic")
+sim = NodePath("../ReactorSim")
+shield = NodePath("../Outside/GravityShield")
+lighting = NodePath("../Lighting")
+driver = NodePath("../BlackHoleDriver")
+track_path = "res://assets/Musica/Singularity.mp3"
 lateral_lasers = [NodePath("../Outside/Lasers/LaserLateral1"), NodePath("../Outside/Lasers/LaserLateral2"), NodePath("../Outside/Lasers/LaserLateral3")]
 diagonal_lasers = [NodePath("../Outside/Lasers/LaserDiagonal1"), NodePath("../Outside/Lasers/LaserDiagonal2"), NodePath("../Outside/Lasers/LaserDiagonal3"), NodePath("../Outside/Lasers/LaserDiagonal4")]
 
@@ -1125,10 +1159,10 @@ views = NodePath("../PixelViewport/CameraViews")
 script = ExtResource("7_dbgorb")
 target = NodePath("../PixelViewport/BlackHole")
 
+[connection signal="room_revealed" from="GameIntro" to="GameMusic" method="start_background"]
 [connection signal="room_revealed" from="GameIntro" to="PixelViewport/PauseLayer/PauseMenu" method="enable"]
 [connection signal="view_cleared" from="PixelViewport/StaticBody3D" to="Music" method="start"]
 [connection signal="view_cleared" from="PixelViewport/StaticBody3D" to="PixelViewport/MenuLayer/MainMenu" method="appear"]
 [connection signal="enter_pressed" from="PixelViewport/MenuLayer/MainMenu" to="Music" method="stop"]
 [connection signal="enter_pressed" from="PixelViewport/MenuLayer/MainMenu" to="GameIntro" method="start"]
 [connection signal="settings_pressed" from="PixelViewport/MenuLayer/MainMenu" to="PixelViewport/StaticBody3D" method="open_settings"]
-[connection signal="room_revealed" from="GameIntro" to="GameMusic" method="start_background"]

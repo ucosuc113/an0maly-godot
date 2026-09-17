@@ -66,6 +66,7 @@ static func build_room() -> Dictionary:
 		"monitor_on": _wav(monitor_on(rng), 0.4),
 		"beam_fire": _wav(beam_fire(rng), 0.55),
 		"shield_ignite": _wav(shield_ignite(rng), 0.7),
+		"breaker_off": _wav(breaker_off(rng), 0.6),
 	}
 
 # --- CRT ------------------------------------------------------------------
@@ -565,6 +566,25 @@ static func shield_ignite(rng: RandomNumberGenerator) -> PackedFloat32Array:
 		var shimmer := (sin(TAU * 880.0 * t) + sin(TAU * 1318.5 * t) * 0.6) * _ad(t - 0.1, 0.3, 0.8) * 0.08
 		s[i] = boom * 0.9 + sweep + shimmer
 	return _reverb(s, 0.5, 1.6, 0.87, 0.35, 2.0)
+
+## Interruptor grande que corta: golpe seco y el zumbido que muere.
+static func breaker_off(rng: RandomNumberGenerator) -> PackedFloat32Array:
+	var n := _len(1.2)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var lp := _OnePole.new(700.0)
+	var ph := 0.0
+	for i in n:
+		var t := float(i) / SR
+		var noise := rng.randf_range(-1.0, 1.0)
+		ph += TAU * lerpf(60.0, 35.0, minf(t / 0.15, 1.0)) / SR
+		var thunk := tanh(2.0 * sin(ph)) * _ad(t, 0.001, 0.12)
+		var snap := lp.lp(noise) * exp(-t / 0.012) * 2.0
+		# Zumbido de 100 Hz que baja de tono y se apaga.
+		var f := 100.0 * (1.0 - 0.3 * minf(t / 0.6, 1.0))
+		var buzz := _soft_square(TAU * f * t, 2.0) * exp(-t / 0.25) * 0.2
+		s[i] = thunk * 0.8 + snap * 0.5 + buzz
+	return _reverb(s, 0.5, 1.5, 0.86, 0.35, 1.6)
 
 ## Encendido de luces industriales: golpe de interruptor grande con arco
 ## electrico, "tinks" de los balastos mientras los tubos pelean por prender

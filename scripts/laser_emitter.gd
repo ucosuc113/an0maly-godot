@@ -19,6 +19,7 @@ extends Node3D
 #   pulse()            golpe de energia (haz, plasma y luz)
 #   set_beam(v, t)     intensidad del haz
 #   charge_up(v, t)    intensidad del plasma (1 = normal)
+#   set_light_scale(v, t)  cuanto iluminan la luz y las tiras (1 = normal)
 #
 # El agujero por donde sale se calcula cruzando el eje con las mallas de
 # `walls`; si no hay, se usa hole_offset.
@@ -107,11 +108,17 @@ var _halo_mat: ShaderMaterial
 var _beam: MeshInstance3D
 var _beam_mat: ShaderMaterial
 var _beam_target: Vector3
+## El haz termina a esta distancia (m) del objetivo (p. ej. en el borde del
+## disco del agujero negro, en vez de atravesarlo).
+var beam_stop: float = 0.0
 var _beam_intensity: float = 0.0
 var _beam_reach: float = 0.0
 var _plasma_boost: float = 1.0
 var _pulse: float = 0.0
 var _length_m: float = 0.0
+## Escala de la luz y de las tiras (para que no compitan con el escudo o con
+## el agujero negro).
+var _light_scale: float = 1.0
 
 func _ready() -> void:
 	_unit = global_basis.y.length()
@@ -388,6 +395,10 @@ func set_beam(intensity: float, time: float = 0.4) -> void:
 func pulse(amount: float = 1.0) -> void:
 	_pulse = maxf(_pulse, amount)
 
+## Cuanto iluminan la luz azul/morada y las tiras (1 = normal).
+func set_light_scale(value: float, time: float = 1.0) -> void:
+	create_tween().tween_property(self, "_light_scale", value, time).set_trans(Tween.TRANS_SINE)
+
 ## Intensidad del plasma y de la luz (1 = normal).
 func charge_up(value: float, time: float = 1.0) -> void:
 	create_tween().tween_property(self, "_plasma_boost", value, time).set_trans(Tween.TRANS_SINE)
@@ -416,10 +427,12 @@ func _build_beam() -> void:
 
 func _update_beam() -> void:
 	var a := tip_position()
-	var ab := _beam_target - a
-	var length := ab.length()
-	if length < 0.001:
+	var to_target := _beam_target - a
+	var full := to_target.length()
+	if full < 0.001:
 		return
+	var ab := to_target * (maxf(full - beam_stop, 0.01) / full)
+	var length := ab.length()
 	var dir := ab / length
 	# Cilindro: +Y hacia el objetivo, alto = largo del haz.
 	var side := dir.cross(Vector3.UP)
@@ -455,7 +468,9 @@ func _process(delta: float) -> void:
 		var ms := Time.get_ticks_msec()
 		var breathe := 1.0 + 0.06 * sin(ms * 0.011) + 0.04 * sin(ms * 0.027)
 		var k := breathe if _glow >= 1.0 else 1.0
-		_light.light_energy = light_energy * maxf(_glow, _charge * 0.35) * k * boost
+		_light.light_energy = light_energy * maxf(_glow, _charge * 0.35) * k * boost * _light_scale
+	for m in _strip_mats:
+		m.emission_energy_multiplier = strip_energy * _glow * lerpf(0.4, 1.0, _light_scale)
 
 func _apply() -> void:
 	_inferior.position = Vector3(0.0, _body_offset, 0.0)

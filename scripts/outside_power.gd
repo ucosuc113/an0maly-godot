@@ -9,6 +9,9 @@ extends Node
 #
 # Va despues de GlowLights / GlowPortal en el arbol: toma los valores que ellos
 # ya prepararon.
+#
+#   fade_level(v, t)     nivel general de tiras y luces (1 = normal, 0 = apagado)
+#   shut_down(t)         apagado por filas de abajo arriba, con golpes
 
 const STRIP_SHADER = preload("res://shaders/strip_power.gdshader")
 
@@ -34,6 +37,14 @@ var _bottom: float = -2.0
 ## [{y, lights: [Light3D], energy: {Light3D: float}, on: bool}] de arriba abajo.
 var _rows: Array = []
 var _portal_intensity: float = 1.0
+## Nivel general (lo animan fade_level / shut_down).
+var level: float = 1.0:
+	set(value):
+		level = value
+		_apply_level()
+## Factor actual de cada fila (tirones del encendido).
+var _row_factor: Dictionary = {}
+var _strip_energy: float = 0.0
 
 func _ready() -> void:
 	_setup_strips()
@@ -61,7 +72,8 @@ func _setup_strips() -> void:
 			m.set_shader_parameter("albedo", base.albedo_color)
 			m.set_shader_parameter("roughness", base.roughness)
 			m.set_shader_parameter("emission_color", base.emission)
-			m.set_shader_parameter("emission_energy", maxf(base.emission_energy_multiplier, 1.0) * strip_intensity)
+			_strip_energy = maxf(base.emission_energy_multiplier, 1.0) * strip_intensity
+			m.set_shader_parameter("emission_energy", _strip_energy)
 			mi.set_surface_override_material(s, m)
 			_strip_mats.append(m)
 
@@ -111,8 +123,46 @@ func _row_on(row: Dictionary) -> void:
 			t.tween_interval(st[1])
 
 func _set_row(row: Dictionary, factor: float) -> void:
+	_row_factor[row] = factor
 	for l: Light3D in row.lights:
-		l.light_energy = row.energy[l] * factor
+		l.light_energy = row.energy[l] * factor * level
+
+func _apply_level() -> void:
+	for m in _strip_mats:
+		m.set_shader_parameter("emission_energy", _strip_energy * level)
+	for row in _rows:
+		if row.on:
+			_set_row(row, _row_factor.get(row, 1.0))
+
+func fade_level(value: float, time: float) -> Tween:
+	var t := create_tween()
+	t.tween_property(self, "level", value, time).set_trans(Tween.TRANS_SINE)
+	return t
+
+## Apagado por filas, de abajo hacia arriba, cada una con su golpe y un
+## ultimo parpadeo. Al final se apagan las tiras y el portal.
+func shut_down(time: float = 3.0) -> void:
+	var rows := _rows.duplicate()
+	rows.reverse()
+	var step := time / maxf(rows.size() + 1, 1)
+	for row in rows:
+		if not row.on:
+			continue
+		_play("breaker_off", -3.0, randf_range(0.9, 1.05))
+		var t := create_tween()
+		for st in [[0.4, 0.04], [0.9, 0.05], [0.0, 0.0]]:
+			t.tween_callback(_set_row.bind(row, st[0]))
+			if st[1] > 0.0:
+				t.tween_interval(st[1])
+		await get_tree().create_timer(step, false).timeout
+	var s := create_tween().set_parallel()
+	for m in _strip_mats:
+		s.tween_method(func(v: float) -> void: m.set_shader_parameter("emission_energy", v),
+			_strip_energy * level, 0.0, step)
+	if portal_glow:
+		s.tween_property(portal_glow, "intensity", 0.0, step)
+	_play("breaker_off", 0.0, 0.8)
+	await s.finished
 
 func _play(sound: String, volume_db: float = 0.0, pitch: float = 1.0) -> void:
 	if sfx:

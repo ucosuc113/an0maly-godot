@@ -21,6 +21,10 @@ uniform vec4 ripple_b = vec4(0.0, 0.0, 1.0, -1.0);
 uniform vec4 ripple_c = vec4(0.0, 0.0, 1.0, -1.0);
 uniform vec4 ripple_d = vec4(0.0, 0.0, 1.0, -1.0);
 uniform float ripple_speed = 2.4;
+/// Brillo general.
+uniform float brightness = 1.0;
+/// 0..1: el escudo se comprime (la reticula se tensa y brilla mas).
+uniform float compression = 0.0;
 
 varying vec3 n;
 
@@ -71,5 +75,5 @@ void fragment() {
 		+ rim_color.rgb * rim * density * 0.9
 		+ rim_color.rgb * rip * (0.4 + density)
 		+ rim_color.rgb * flash * (0.35 + rim);
-	ALBEDO = col;
+	ALBEDO = col * brightness * (1.0 + compression * 0.6);
 }

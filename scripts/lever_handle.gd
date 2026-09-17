@@ -52,6 +52,7 @@ func _ready() -> void:
 		views.view_changed.connect(_on_view_changed)
 	if panel:
 		panel.levers_unlocked.connect(_refresh)
+		panel.level_changed.connect(_on_level_changed)
 		_shown = panel.get_level(lever_id)
 		_goal = _shown
 		_last_detent = int(_shown)
@@ -96,6 +97,12 @@ func _find_rail() -> void:
 	if rail.length() > 0.001:
 		_axis = rail.normalized()
 		_step = rail.length() / 4.0
+
+## Si el nivel cambia desde otro lado (no por este mango), el mango lo sigue.
+func _on_level_changed(id: StringName, level: int) -> void:
+	if id != lever_id or _dragging or level == _last_detent:
+		return
+	_snap_to(level)
 
 func _on_view_changed(view: StringName) -> void:
 	_in_view = view == usable_in_view
