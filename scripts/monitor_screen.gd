@@ -36,6 +36,17 @@ var state: State = State.OFF
 var time: float = 0.0
 var _boot_t: float = 0.0
 var _redraw_t: float = 0.0
+var _glitch: float = 0.0
+## Sin datos: solo ERROR (el nucleo paso el punto de no retorno).
+var failed: bool = false
+
+func fail() -> void:
+	failed = true
+	glitch(1.0)
+
+## Interferencia (onda expansiva): franjas corridas y ruido que se apagan.
+func glitch(amount: float = 1.0) -> void:
+	_glitch = maxf(_glitch, amount)
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -53,6 +64,9 @@ func _process(delta: float) -> void:
 	if state == State.OFF:
 		return
 	time += delta
+	if _glitch > 0.0:
+		_glitch = maxf(_glitch - delta * 1.2, 0.0)
+		queue_redraw()
 	if state == State.BOOT:
 		_boot_t += delta
 		if _boot_t >= 1.9:
@@ -69,7 +83,47 @@ func _draw() -> void:
 		State.BOOT:
 			_draw_boot()
 		State.LIVE:
-			_draw_live()
+			if failed:
+				_draw_error()
+			else:
+				_draw_live()
+	if _glitch > 0.0:
+		_draw_glitch()
+
+func _draw_error() -> void:
+	var w := int(size.x)
+	var h := int(size.y)
+	# Estatica roja de fondo.
+	for i in 60:
+		draw_rect(Rect2(randi() % maxi(w, 1), randi() % maxi(h, 1), 1 + randi() % 4, 1),
+			Color(WARN, randf_range(0.05, 0.3)))
+	var on := fmod(time, 0.8) < 0.5
+	var red := WARN if on else Color(WARN, 0.35)
+	frame(Rect2i(3, 3, w - 6, h - 6), red)
+	frame(Rect2i(5, 5, w - 10, h - 10), Color(WARN, 0.3))
+	var y := h / 2 - 22
+	text_centered("⚠ SYSTEM FAILURE ⚠", y, red)
+	text_centered("ERROR", y + 10, red, 2)
+	text_centered(boot_title + " // NO DATA", y + 28, VALUE)
+	# Codigos que cambian solos, como un volcado que no termina.
+	var tick := int(time * 3.0)
+	var code := hash(boot_title + str(tick)) & 0xFFFF
+	text_centered("ERR 0x%04X  CORE BREACH" % code, y + 38, DIM)
+	if int(time * 2.0) % 2 == 0:
+		text_centered("_", y + 46, WARN)
+
+func _draw_glitch() -> void:
+	var w := size.x
+	var h := int(size.y)
+	var colors := [WARN, TITLE, VALUE, BG, BG]
+	for i in int(4 + 16 * _glitch):
+		var y := randi() % maxi(h, 1)
+		var band := 1 + randi() % int(2 + 8 * _glitch)
+		var shift := randf_range(-16.0, 16.0) * _glitch
+		var c: Color = colors[randi() % colors.size()]
+		draw_rect(Rect2(shift, y, w, band), Color(c, randf_range(0.3, 0.85)))
+	if _glitch > 0.6 and randf() < 0.4:
+		draw_rect(Rect2(Vector2.ZERO, size), Color(1.0, 1.0, 1.0, 0.12))
 
 func _draw_boot() -> void:
 	var w := int(size.x)

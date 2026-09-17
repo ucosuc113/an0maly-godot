@@ -8,6 +8,15 @@ render_mode unshaded, cull_front, depth_draw_never, blend_mix, shadows_disabled,
 // La malla es solo el VOLUMEN del raymarch. Se renderizan las caras traseras
 // (cull_front) para que el efecto siga dibujandose si la camara entra dentro.
 
+// MANUAL_DEPTH (lo define black_hole.gd al crecer mucho): sin prueba de
+// profundidad por hardware -- el volumen atravesaria las paredes y quedaria
+// tapado entero --, y en su lugar cada rayo se corta donde esta la geometria
+// opaca de la escena. Asi lo que esta DELANTE (ventanal, monitores) lo sigue
+// tapando, y el horizonte se "come" las cosas solo cuando las alcanza.
+#ifdef MANUAL_DEPTH
+uniform sampler2D scene_depth : hint_depth_texture, filter_nearest, repeat_disable;
+#endif
+
 uniform float bound_radius = 2.0;
 uniform float event_horizon_radius = 0.25;
 uniform float disc_inner_radius = 0.65;
@@ -25,6 +34,9 @@ uniform float disc_thickness : hint_range(0.01, 0.5) = 0.07;
 uniform float disc_opacity : hint_range(0.0, 8.0) = 0.35;
 uniform float disc_brightness : hint_range(0.0, 10.0) = 1.8;
 uniform float doppler_strength : hint_range(0.0, 1.0) = 0.55;
+/// Cuanto se apaga el disco hacia fuera (exponente de inner/r). Con discos muy
+/// grandes y 1.0, el borde queda opaco pero casi negro y tapa como un muro.
+uniform float disc_falloff : hint_range(0.0, 2.0) = 1.0;
 
 // --- Textura del disco (todo procedural, cero imagenes) ---
 
@@ -121,7 +133,26 @@ void fragment() {
 	// las conchas y se convierte en ruido por pixel que tapa la textura.
 	float jitter = hash31(vec3(FRAGCOORD.xy, 0.0))
 			* min(bound_radius * 0.06, disc_thickness * 0.5);
-	vec3 pos = ro + rd * (max(-b - h, 0.0) + jitter);
+	float t = max(-b - h, 0.0) + jitter;
+	vec3 pos = ro + rd * t;
+
+	// Distancia (en espacio local, a lo largo del rayo) hasta la escena opaca.
+	float t_scene = 1e20;
+#ifdef MANUAL_DEPTH
+	float raw_depth = texture(scene_depth, SCREEN_UV).r;
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+	vec3 ndc = vec3(SCREEN_UV * 2.0 - 1.0, raw_depth * 2.0 - 1.0);
+#else
+	vec3 ndc = vec3(SCREEN_UV * 2.0 - 1.0, raw_depth);
+#endif
+	vec4 view_pos = INV_PROJECTION_MATRIX * vec4(ndc, 1.0);
+	view_pos.xyz /= view_pos.w;
+	vec3 scene_local = (inverse(MODEL_MATRIX) * (INV_VIEW_MATRIX * vec4(view_pos.xyz, 1.0))).xyz;
+	t_scene = dot(scene_local - ro, rd);
+	if (t > t_scene) {
+		discard;
+	}
+#endif
 	vec3 dir = rd;
 
 	vec3 accum = vec3(0.0);
@@ -129,7 +160,7 @@ void fragment() {
 
 	for (int i = 0; i < march_steps; i++) {
 		float r = length(pos);
-		if (r > bound_radius * 1.001) {
+		if (r > bound_radius * 1.001 || t > t_scene) {
 			break;
 		}
 		if (r < event_horizon_radius) {
@@ -147,6 +178,9 @@ void fragment() {
 		float plane_gap = abs(dot(pos, disc_n));
 		float near_disc = 1.0 - smoothstep(disc_thickness * 1.5, disc_thickness * 5.0, plane_gap);
 		dt = mix(dt, max(min(dt, disc_thickness * 0.5), bound_radius * 0.002), near_disc);
+		// El ultimo paso termina justo en la escena: corte limpio contra las
+		// paredes en vez de un borde granulado.
+		dt = min(dt, max(t_scene - t, 0.0) + 0.0001);
 
 		// Deflexion ~ Rs/r^2 por unidad de arco. El factor event_horizon_radius
 		// es lo que la hace INVARIANTE A ESCALA: sin el, achicar el agujero
@@ -184,6 +218,7 @@ void fragment() {
 			density *= max(mix(1.0, shaped * 2.0 * rings, turbulence), 0.0);
 			if (density <= 0.001) {
 				pos += dir * dt;
+				t += dt;
 				continue;
 			}
 
@@ -199,7 +234,7 @@ void fragment() {
 			col *= disc_brightness * boost * boost;
 
 			// Mas caliente y brillante hacia dentro.
-			col *= disc_inner_radius / max(radial, 0.0001);
+			col *= pow(disc_inner_radius / max(radial, 0.0001), disc_falloff);
 
 			// Acumulacion volumetrica: bordes suaves en vez de corte binario.
 			float a = clamp(density * disc_opacity
@@ -212,6 +247,7 @@ void fragment() {
 		}
 
 		pos += dir * dt;
+		t += dt;
 	}
 
 	if (alpha < 0.002) {

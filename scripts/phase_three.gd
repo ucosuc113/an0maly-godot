@@ -107,7 +107,7 @@ func _run() -> void:
 	for l in _all_lasers():
 		l.set_beam(1.0, 0.5)
 		l.beam_stop = 0.07
-	for hit in [[43.5, 0.02], [45.25, 0.028], [47.25, 0.04]]:
+	for hit in [[43.5, 0.016], [45.25, 0.022], [47.25, 0.03]]:
 		await _at(hit[0])
 		_grow(bh, "sphere_radius", hit[1], 0.35)
 		shield.ripple(_random_dir())
@@ -134,8 +134,8 @@ func _run() -> void:
 
 	# --- DROP: nace la singularidad ---------------------------------------------
 	await _at(DROP)
-	bh.sphere_radius = 0.06
-	bh.disc_radius = 0.4
+	bh.sphere_radius = 0.034
+	bh.disc_radius = 0.42
 	bh.disc_opacity = 0.42
 	bh.disc_brightness = 6.0
 	_grow(bh, "disc_brightness", 2.2, 1.5)
@@ -176,6 +176,7 @@ func _run() -> void:
 	views.cinematic = false
 	music.duck_track(background_volume_db, 4.0)
 	await views.go_to(return_view)
+	lighting.room_on(0.75)
 	panel.complete_phase(PHASE)
 
 # --- Ayudas -----------------------------------------------------------------------

@@ -55,6 +55,13 @@ func start_background() -> void:
 		_bg.play()
 	_bg_tween = _fade(_bg, _bg_tween, background_volume_db, background_fade_in, Tween.EASE_OUT)
 
+## Desvanece el fondo (p. ej. en un final); vuelve con start_background().
+func stop_background(time: float = 2.0) -> void:
+	_bg_wanted = false
+	if _bg.playing:
+		_bg_tween = _fade(_bg, _bg_tween, -60.0, time, Tween.EASE_IN)
+		_bg_tween.finished.connect(_bg.stop)
+
 func play_track(stream: AudioStream, volume_db: float = -6.0) -> void:
 	if stream == null:
 		return

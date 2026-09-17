@@ -21,7 +21,7 @@ signal step_printed(op: String, text: String)
 
 const PixelFont = preload("res://scripts/pixel_font.gd")
 
-enum Phase { BLANK, BOOT, MENU, SETTINGS }
+enum Phase { BLANK, BOOT, MENU, SETTINGS, ENDINGS }
 
 ## Tamano para el que esta maquetada la terminal. Si la pantalla es mas
 ## grande, crt_monitor.gd la centra.
@@ -57,6 +57,10 @@ const SEG_GAP := 1
 
 ## Nodo con game_settings.gd (lo asigna crt_monitor.gd).
 var settings: Node
+## Nodo con endings.gd (lo asigna crt_monitor.gd).
+var endings: Node
+## Pagina ENDINGS: el primer clic en RESET pide confirmacion.
+var _reset_armed: bool = false
 
 var phase: Phase = Phase.BLANK
 var hover_id: String = "":
@@ -147,6 +151,22 @@ func start_settings() -> void:
 	if await _run_steps(steps):
 		_open_page(Phase.SETTINGS)
 
+## Carga corta antes de la lista de finales.
+func start_endings() -> void:
+	var got: int = endings.count() if endings else 0
+	var total: int = endings.total() if endings else 0
+	var steps: Array = [
+		[0.00, "L", "> MOUNT /VAR/LOG", 1],
+		[0.06, "S", "OK", 2],
+		[0.05, "L", "> READ ENDINGS.LOG", 1],
+		[0.08, "S", "%d/%d" % [got, total], 2],
+		[0.05, "L", "> DECRYPT RECORDS", 1],
+		[0.16, "L", "", 1],
+	]
+	_reset_armed = false
+	if await _run_steps(steps):
+		_open_page(Phase.ENDINGS)
+
 ## Devuelve false si la secuencia se cancelo (blank() a mitad de camino).
 func _run_steps(steps: Array) -> bool:
 	_sequence += 1
@@ -202,7 +222,7 @@ func blank() -> void:
 
 ## Solo cuenta lo ya revelado: no se puede clicar algo que aun no se ve.
 func hit_test(px: Vector2i) -> String:
-	if phase != Phase.MENU and phase != Phase.SETTINGS:
+	if phase != Phase.MENU and phase != Phase.SETTINGS and phase != Phase.ENDINGS:
 		return ""
 	if _reveal() < 1.0:
 		return ""
@@ -222,6 +242,14 @@ func click(px: Vector2i) -> String:
 	if id == "initialize" or id == "back":
 		pressed_id = id
 		return id
+	if id == "reset":
+		if not _reset_armed:
+			_reset_armed = true
+		elif endings:
+			endings.reset()
+			_reset_armed = false
+			_saved_flash = 0.9
+		return "changed"
 	var row := _row(id)
 	if row.is_empty() or settings == null:
 		return ""
@@ -293,6 +321,9 @@ func _draw() -> void:
 			_draw_reveal_cover()
 		Phase.SETTINGS:
 			_draw_settings()
+			_draw_reveal_cover()
+		Phase.ENDINGS:
+			_draw_endings()
 			_draw_reveal_cover()
 
 func _draw_boot() -> void:
@@ -392,6 +423,43 @@ func _draw_settings() -> void:
 
 	_draw_dotted_line(106, MARGIN.x, right)
 	_draw_frame_button("back", BACK_TEXT, w / 2, 112)
+
+func _draw_endings() -> void:
+	var w: int = int(size.x)
+	var right: int = w - MARGIN.x
+	var list: Array = endings.ENDINGS if endings else []
+	PixelFont.draw(self, "ENDINGS LOG", Vector2(MARGIN.x, MARGIN.y), _tone(2))
+	var tag := "WIPED" if _saved_flash > 0.0 else "%d/%d" % [endings.count(), endings.total()] if endings else "-"
+	PixelFont.draw(self, tag, Vector2(right - PixelFont.text_width(tag), MARGIN.y),
+		phosphor if _saved_flash > 0.0 else _tone(0))
+	_draw_dotted_line(19, MARGIN.x, right)
+
+	for i in list.size():
+		var e: Dictionary = list[i]
+		var y: int = 24 + i * 19
+		var got: bool = endings.is_unlocked(e.id)
+		var num := "%02d" % (i + 1)
+		PixelFont.draw(self, num, Vector2(MARGIN.x, y), _tone(2) if got else _tone(0))
+		if got:
+			PixelFont.draw(self, e.title, Vector2(MARGIN.x + 16, y), phosphor)
+			# Marca de desbloqueado que late.
+			if fmod(_time + i * 0.3, 1.6) < 1.2:
+				draw_rect(Rect2(right - 4, y + 2, 3, 3), _tone(2))
+		else:
+			# Titulo oculto: bloques que titilan.
+			var hidden := ""
+			for c in e.title.length():
+				hidden += " " if e.title[c] == " " else ("#" if fmod(_time * 3.0 + c * 0.37, 2.0) < 1.0 else "-")
+			PixelFont.draw(self, hidden, Vector2(MARGIN.x + 16, y), _tone(0).darkened(0.3))
+		PixelFont.draw(self, ("> " + e.hint) if not got else "RECORDED", Vector2(MARGIN.x + 16, y + 9),
+			_tone(0).darkened(0.25) if not got else _tone(0))
+
+	_draw_dotted_line(102, MARGIN.x, right)
+	_draw_frame_button("back", BACK_TEXT, w / 2 - 36, 110)
+	# RESET pide confirmacion; si el puntero se va, se desarma.
+	if _reset_armed and hover_id != "reset":
+		_reset_armed = false
+	_draw_frame_button("reset", "CONFIRM?" if _reset_armed else "RESET", w / 2 + 40, 110)
 
 func _draw_setting_row(i: int, right: int) -> void:
 	var row: Dictionary = SETTING_ROWS[i]

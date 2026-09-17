@@ -20,6 +20,8 @@ extends Node3D
 #   set_beam(v, t)     intensidad del haz
 #   charge_up(v, t)    intensidad del plasma (1 = normal)
 #   set_light_scale(v, t)  cuanto iluminan la luz y las tiras (1 = normal)
+#   overload(v)        sobrecarga (derretimiento): chispas, golpes al azar y el
+#                      plasma que se tine de rojo
 #
 # El agujero por donde sale se calcula cruzando el eje con las mallas de
 # `walls`; si no hay, se usa hole_offset.
@@ -119,6 +121,10 @@ var _length_m: float = 0.0
 ## Escala de la luz y de las tiras (para que no compitan con el escudo o con
 ## el agujero negro).
 var _light_scale: float = 1.0
+## 0..1: sobrecarga.
+var _overload: float = 0.0
+var _spark_t: float = 0.0
+var _sparks: CPUParticles3D
 
 func _ready() -> void:
 	_unit = global_basis.y.length()
@@ -399,6 +405,78 @@ func pulse(amount: float = 1.0) -> void:
 func set_light_scale(value: float, time: float = 1.0) -> void:
 	create_tween().tween_property(self, "_light_scale", value, time).set_trans(Tween.TRANS_SINE)
 
+## Sobrecarga (0 = normal, 1 = al limite).
+func overload(value: float) -> void:
+	_overload = clampf(value, 0.0, 1.0)
+	var red := Color(1.0, 0.15, 0.25)
+	for m in _core_mats:
+		m.set_shader_parameter("mid_color", plasma_mid.lerp(red, _overload * 0.8))
+		m.set_shader_parameter("deep_color", plasma_deep.lerp(red.darkened(0.5), _overload * 0.8))
+	if _beam_mat:
+		_beam_mat.set_shader_parameter("color", light_color.lerp(red, _overload * 0.7))
+
+## Chispazo suelto (golpes de la onda expansiva).
+func spark(strength: float = 1.0) -> void:
+	_spark_burst(clampf(strength, 0.0, 1.0))
+
+var beam_intensity: float:
+	get:
+		return _beam_intensity
+
+## El agujero negro se lo trago (singularity_hunger.gd anima una copia): el
+## original se oculta y se calla.
+func swallowed() -> void:
+	visible = false
+	if _hum:
+		create_tween().tween_property(_hum, "volume_db", -60.0, 0.4)
+
+## Vuelve tras estabilizar.
+func restored(beam: float) -> void:
+	visible = true
+	if _hum:
+		create_tween().tween_property(_hum, "volume_db", -8.0, 1.0)
+	set_beam(beam, 1.0)
+	pulse(1.5)
+
+func _spark_burst(strength: float) -> void:
+	if _sparks == null:
+		_sparks = CPUParticles3D.new()
+		_sparks.one_shot = true
+		_sparks.explosiveness = 0.95
+		_sparks.lifetime = 0.5
+		_sparks.local_coords = false
+		_sparks.direction = Vector3(0, 1, 0)
+		_sparks.spread = 180.0
+		_sparks.initial_velocity_min = 0.6
+		_sparks.initial_velocity_max = 1.8
+		_sparks.gravity = Vector3(0, -3.0, 0)
+		_sparks.scale_amount_min = 0.5
+		_sparks.scale_amount_max = 1.0
+		var ramp := Gradient.new()
+		ramp.set_color(0, Color(1.0, 0.95, 0.7))
+		ramp.set_color(1, Color(1.0, 0.3, 0.05, 0.0))
+		_sparks.color_ramp = ramp
+		var quad := QuadMesh.new()
+		quad.size = Vector2(0.025, 0.025)
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.vertex_color_use_as_albedo = true
+		mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+		quad.material = mat
+		_sparks.mesh = quad
+		_sparks.top_level = true
+		_sparks.layers = _inferior_layers()
+		add_child(_sparks)
+	_sparks.amount = int(lerpf(8.0, 40.0, strength))
+	# En un punto al azar del cuerpo.
+	var axis := global_basis.y.normalized()
+	_sparks.global_position = global_position + axis * (_base_along + _length_m * randf_range(0.3, 1.0))
+	_sparks.restart()
+	pulse(0.4 + strength)
+	if strength > 0.5:
+		_play("spark", -10.0, randf_range(0.8, 1.3))
+
 ## Intensidad del plasma y de la luz (1 = normal).
 func charge_up(value: float, time: float = 1.0) -> void:
 	create_tween().tween_property(self, "_plasma_boost", value, time).set_trans(Tween.TRANS_SINE)
@@ -455,6 +533,11 @@ func _process(delta: float) -> void:
 	_head_angle = wrapf(_head_angle + _head_speed * delta, 0.0, TAU)
 	_apply()
 	_pulse = maxf(_pulse - delta * 2.5, 0.0)
+	if _overload > 0.0:
+		_spark_t -= delta
+		if _spark_t <= 0.0:
+			_spark_t = randf_range(0.2, 1.6) * (1.2 - _overload)
+			_spark_burst(_overload)
 	if _beam and _beam.visible:
 		_update_beam()
 	var boost := _plasma_boost + _pulse

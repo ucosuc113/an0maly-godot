@@ -30,6 +30,16 @@ var shield_forming: bool = false
 ## Fase 3 en curso: la singularidad se esta formando (antes del drop).
 var singularity_forming: bool = false
 
+# --- Crisis (las maneja crisis_director.gd) ------------------------------------------
+## 0..1: derretimiento en curso (calor, inestabilidad y escudo que cede).
+var meltdown: float = 0.0
+## Segundos hasta el punto de no retorno (-1 = sin cuenta regresiva).
+var meltdown_eta: float = -1.0
+## 0..1: estabilizacion forzada (lleva todo a valores seguros).
+var stabilizing: float = 0.0
+## 0..1: congelamiento criogenico.
+var frozen: float = 0.0
+
 # --- Valores (objetivo / real) ------------------------------------------------------
 var lat_goal: float = 0.0
 var lat_power: float = 0.0
@@ -101,7 +111,10 @@ func _process(delta: float) -> void:
 	var cooling := 1.0 + fan_rpm / 900.0 + coolant * 0.025
 
 	var temp_goal := 22.0 + (lat_power * 18.0 + dia_power * 26.0) / cooling
-	temp = _approach(temp, temp_goal, 4.0, delta)
+	temp_goal += meltdown * 26000.0
+	temp_goal = lerpf(temp_goal, 2800.0, stabilizing)
+	temp_goal = lerpf(temp_goal, -272.8, frozen)
+	temp = _approach(temp, temp_goal, 4.0 if meltdown <= 0.0 else 6.0, delta)
 
 	# Escudo.
 	if shield_online:
@@ -111,6 +124,8 @@ func _process(delta: float) -> void:
 			shield_integrity -= (shield_stress - 100.0) * 0.02 * delta
 		elif shield_stress < 80.0:
 			shield_integrity += 0.8 * delta
+		shield_integrity -= meltdown * 0.35 * delta
+		shield_integrity += stabilizing * 6.0 * delta
 		shield_integrity = clampf(shield_integrity, 0.0, 100.0)
 		shield_density = _approach(shield_density,
 			clampf(100.0 - shield_stress * 0.25, 5.0, 100.0) * shield_integrity / 100.0, 1.5, delta)
@@ -120,19 +135,22 @@ func _process(delta: float) -> void:
 	# Singularidad y disco.
 	if singularity_online:
 		core_mass += dia_power * 0.0008 * delta
-		core_spin = _approach(core_spin, lat_power * 880.0 + dia_power * 310.0, 3.0, delta)
+		core_spin = _approach(core_spin, (lat_power * 880.0 + dia_power * 310.0) * (1.0 + meltdown * 2.0) * (1.0 - frozen), 3.0, delta)
 		core_charge = _approach(core_charge, (dia - lat) * 12.0, 2.0, delta)
 		core_misalign = _approach(core_misalign, absf(lat - dia) * 120.0 + (100.0 - shield_integrity) * 3.0, 2.0, delta)
 		core_flux = _approach(core_flux, (lat_power + dia_power) * core_spin * 1e-6, 1.5, delta)
 		disc_saturation = _approach(disc_saturation, clampf((lat_power + dia_power) / 16.0, 0.0, 100.0), 3.0, delta)
 		disc_temp = _approach(disc_temp, temp * 8.5, 3.0, delta)
 		disc_spin = _approach(disc_spin, core_spin * 0.085, 3.0, delta)
+		core_mass += meltdown * 4.0 * delta
 		generation = _approach(generation, (lat_power + dia_power) * 3600.0 * (0.5 + disc_saturation / 200.0), 2.0, delta)
 	else:
 		generation = _approach(generation, (lat_power + dia_power) * 1.8, 1.0, delta)
 
 	instability = clampf(maxf((temp - 6000.0) / 12000.0,
 		maxf((100.0 - shield_integrity) / 100.0 if shield_online else 0.0, core_misalign / 1500.0)), 0.0, 1.0)
+	instability = maxf(instability, meltdown)
+	instability *= (1.0 - stabilizing) * (1.0 - frozen)
 	_update_status()
 
 	_history_t += delta
@@ -159,6 +177,12 @@ func _update_status() -> void:
 		s = &"CORE OVERHEAT"
 	if instability > 0.85:
 		s = &"CRITICAL"
+	if meltdown > 0.0:
+		s = &"MELTDOWN"
+	if stabilizing > 0.0:
+		s = &"STABILIZING"
+	if frozen > 0.0:
+		s = &"CRYO LOCK"
 	if s != status:
 		status = s
 		status_changed.emit(s)
@@ -166,7 +190,7 @@ func _update_status() -> void:
 ## Nivel de alarma del estado: 0 normal, 1 aviso, 2 critico.
 func alarm() -> int:
 	match status:
-		&"CRITICAL":
+		&"CRITICAL", &"MELTDOWN":
 			return 2
 		&"SHIELD DEGRADING", &"CORE OVERHEAT":
 			return 1

@@ -72,7 +72,13 @@
 [ext_resource type="PackedScene" uid="uid://dmxdtg3727e4d" path="res://assets/Lasers/LaserGuiadores.fbx" id="54_rnkwl"]
 [ext_resource type="Script" uid="uid://bjivlx350o8qh" path="res://scripts/phase_three.gd" id="55_phase3"]
 [ext_resource type="PackedScene" uid="uid://cokurcsjqnitq" path="res://assets/Lasers/LaserInferior.fbx" id="55_vke2r"]
+[ext_resource type="Script" uid="uid://chxwc37vyjq4g" path="res://scripts/endings.gd" id="56_endings"]
 [ext_resource type="PackedScene" uid="uid://tbcwr5grm0wt" path="res://assets/Lasers/LaserLanzador.fbx" id="56_uit24"]
+[ext_resource type="Script" uid="uid://dfcrrkg71fsqb" path="res://scripts/ending_toast.gd" id="57_toast"]
+[ext_resource type="Script" uid="uid://r5knmhd2o6il" path="res://scripts/restore_screen.gd" id="58_restore"]
+[ext_resource type="Script" uid="uid://bc2euucntoh6l" path="res://scripts/alert_overlay.gd" id="59_alert"]
+[ext_resource type="Script" uid="uid://bk7xu6h25q5wh" path="res://scripts/crisis_director.gd" id="60_crisis"]
+[ext_resource type="Script" path="res://scripts/singularity_hunger.gd" id="61_hunger"]
 [ext_resource type="PackedScene" uid="uid://ddcalvickbsrr" path="res://assets/MonitorCentral.fbx" id="61_sm6fg"]
 [ext_resource type="PackedScene" uid="uid://jduegswiv4oi" path="res://assets/MonitorDer.fbx" id="62_b17eg"]
 [ext_resource type="PackedScene" uid="uid://c44xirenvbmve" path="res://assets/MonitorIzq.fbx" id="63_ntx8l"]
@@ -111,7 +117,7 @@ shader_parameter/edge_color = Color(1, 0.55, 0.15, 1)
 shader_parameter/edge_width = 0.12
 shader_parameter/noise_mix = 0.35
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_phcyf"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ppx11"]
 shader = ExtResource("9_ycdy4")
 shader_parameter/progress = 1.0
 shader_parameter/edge_color = Color(1, 0.55, 0.15, 1)
@@ -163,6 +169,9 @@ script = ExtResource("12_settings")
 bloom_environment = NodePath("../PixelViewport/RoomEnvironment")
 extra_lights = [NodePath("../PixelViewport/Outside/OutsideLights")]
 
+[node name="Endings" type="Node" parent="." unique_id=1800000001]
+script = ExtResource("56_endings")
+
 [node name="Sfx" type="Node" parent="." unique_id=1350970948]
 process_mode = 3
 script = ExtResource("13_sfx")
@@ -193,12 +202,13 @@ script = ExtResource("5_pxvpw")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.528)
 fov = 54.147915
 
-[node name="StaticBody3D" type="StaticBody3D" parent="PixelViewport" unique_id=1434012075 node_paths=PackedStringArray("look_illusion", "settings", "sfx", "screen_light")]
+[node name="StaticBody3D" type="StaticBody3D" parent="PixelViewport" unique_id=1434012075 node_paths=PackedStringArray("look_illusion", "settings", "sfx", "endings", "screen_light")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.7241395)
 script = ExtResource("1_crtmon")
 look_illusion = NodePath("LookIllusion")
 settings = NodePath("../../GameSettings")
 sfx = NodePath("../../Sfx")
+endings = NodePath("../../Endings")
 screen_light = NodePath("ScreenGlow")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="PixelViewport/StaticBody3D" unique_id=1726541350]
@@ -985,7 +995,7 @@ panel = NodePath("../../../ControlPanel")
 layer = 4
 
 [node name="BackButton" type="Control" parent="PixelViewport/HudLayer" unique_id=736450921 node_paths=PackedStringArray("sfx")]
-material = SubResource("ShaderMaterial_phcyf")
+material = SubResource("ShaderMaterial_ppx11")
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -1006,6 +1016,18 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("48_mnav")
+sfx = NodePath("../../../Sfx")
+
+[node name="AlertOverlay" type="Control" parent="PixelViewport/HudLayer" unique_id=1800000002 node_paths=PackedStringArray("settings", "sfx")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("59_alert")
+settings = NodePath("../../../GameSettings")
 sfx = NodePath("../../../Sfx")
 
 [node name="CinematicLayer" type="CanvasLayer" parent="PixelViewport" unique_id=1733004430]
@@ -1077,6 +1099,43 @@ track_path = "res://assets/Musica/Singularity.mp3"
 lateral_lasers = [NodePath("../Outside/Lasers/LaserLateral1"), NodePath("../Outside/Lasers/LaserLateral2"), NodePath("../Outside/Lasers/LaserLateral3")]
 diagonal_lasers = [NodePath("../Outside/Lasers/LaserDiagonal1"), NodePath("../Outside/Lasers/LaserDiagonal2"), NodePath("../Outside/Lasers/LaserDiagonal3"), NodePath("../Outside/Lasers/LaserDiagonal4")]
 
+[node name="Crisis" type="Node" parent="PixelViewport" unique_id=1800000007 node_paths=PackedStringArray("panel", "sim", "views", "bars", "music", "driver", "shield", "lighting", "endings", "overlay", "restore", "flash", "sfx", "settings", "lasers", "hunger", "crystal", "left_monitor")]
+script = ExtResource("60_crisis")
+hunger = NodePath("../Hunger")
+crystal = NodePath("../Crystal")
+left_monitor = NodePath("../MapAnomalyPlayerRoom/MonitorIzq")
+panel = NodePath("../ControlPanel")
+sim = NodePath("../ReactorSim")
+views = NodePath("../CameraViews")
+bars = NodePath("../CinematicLayer/CinematicBars")
+music = NodePath("../../GameMusic")
+driver = NodePath("../BlackHoleDriver")
+shield = NodePath("../Outside/GravityShield")
+lighting = NodePath("../Lighting")
+endings = NodePath("../../Endings")
+overlay = NodePath("../HudLayer/AlertOverlay")
+restore = NodePath("../RestoreLayer/RestoreScreen")
+flash = NodePath("../FlashLayer/Flash")
+sfx = NodePath("../../Sfx")
+settings = NodePath("../../GameSettings")
+lasers = [NodePath("../Outside/Lasers/LaserLateral1"), NodePath("../Outside/Lasers/LaserLateral2"), NodePath("../Outside/Lasers/LaserLateral3"), NodePath("../Outside/Lasers/LaserDiagonal1"), NodePath("../Outside/Lasers/LaserDiagonal2"), NodePath("../Outside/Lasers/LaserDiagonal3"), NodePath("../Outside/Lasers/LaserDiagonal4")]
+meltdown_track = "res://assets/Musica/KineticEnergy.mp3"
+
+[node name="Hunger" type="Node" parent="PixelViewport" unique_id=1800000008 node_paths=PackedStringArray("black_hole", "views", "shield", "lighting", "outside", "fans", "lasers", "monitors", "outside_lights", "flash", "sfx", "settings")]
+script = ExtResource("61_hunger")
+black_hole = NodePath("../BlackHole")
+views = NodePath("../CameraViews")
+shield = NodePath("../Outside/GravityShield")
+lighting = NodePath("../Lighting")
+outside = NodePath("../Outside/OutsidePower")
+fans = NodePath("../Outside/Fans/FanSpinner")
+lasers = [NodePath("../Outside/Lasers/LaserLateral1"), NodePath("../Outside/Lasers/LaserLateral2"), NodePath("../Outside/Lasers/LaserLateral3"), NodePath("../Outside/Lasers/LaserDiagonal1"), NodePath("../Outside/Lasers/LaserDiagonal2"), NodePath("../Outside/Lasers/LaserDiagonal3"), NodePath("../Outside/Lasers/LaserDiagonal4")]
+monitors = [NodePath("../MapAnomalyPlayerRoom/MonitorIzq/MonitorBody"), NodePath("../MapAnomalyPlayerRoom/MonitorCentral/MonitorBody"), NodePath("../MapAnomalyPlayerRoom/MonitorDer/MonitorBody")]
+outside_lights = NodePath("../Outside/OutsideLights")
+flash = NodePath("../FlashLayer/Flash")
+sfx = NodePath("../../Sfx")
+settings = NodePath("../../GameSettings")
+
 [node name="TransitionLayer" type="CanvasLayer" parent="PixelViewport" unique_id=1560937702]
 layer = 6
 
@@ -1133,6 +1192,38 @@ anchors_preset = 0
 script = ExtResource("11_mbtn")
 text = "CANCEL"
 
+[node name="RestoreLayer" type="CanvasLayer" parent="PixelViewport" unique_id=1800000003]
+process_mode = 3
+layer = 12
+
+[node name="RestoreScreen" type="Control" parent="PixelViewport/RestoreLayer" unique_id=1800000004 node_paths=PackedStringArray("sfx")]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("58_restore")
+sfx = NodePath("../../../Sfx")
+
+[node name="ToastLayer" type="CanvasLayer" parent="PixelViewport" unique_id=1800000005]
+process_mode = 3
+layer = 13
+
+[node name="EndingToast" type="Control" parent="PixelViewport/ToastLayer" unique_id=1800000006 node_paths=PackedStringArray("endings", "sfx")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("57_toast")
+endings = NodePath("../../../Endings")
+sfx = NodePath("../../../Sfx")
+
 [node name="FlashLayer" type="CanvasLayer" parent="PixelViewport" unique_id=1762729786]
 layer = 10
 
@@ -1161,8 +1252,10 @@ target = NodePath("../PixelViewport/BlackHole")
 
 [connection signal="room_revealed" from="GameIntro" to="GameMusic" method="start_background"]
 [connection signal="room_revealed" from="GameIntro" to="PixelViewport/PauseLayer/PauseMenu" method="enable"]
+[connection signal="direct_start" from="PixelViewport/StaticBody3D" to="GameIntro" method="start"]
 [connection signal="view_cleared" from="PixelViewport/StaticBody3D" to="Music" method="start"]
 [connection signal="view_cleared" from="PixelViewport/StaticBody3D" to="PixelViewport/MenuLayer/MainMenu" method="appear"]
+[connection signal="endings_pressed" from="PixelViewport/MenuLayer/MainMenu" to="PixelViewport/StaticBody3D" method="open_endings"]
 [connection signal="enter_pressed" from="PixelViewport/MenuLayer/MainMenu" to="Music" method="stop"]
 [connection signal="enter_pressed" from="PixelViewport/MenuLayer/MainMenu" to="GameIntro" method="start"]
 [connection signal="settings_pressed" from="PixelViewport/MenuLayer/MainMenu" to="PixelViewport/StaticBody3D" method="open_settings"]

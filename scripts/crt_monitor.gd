@@ -20,6 +20,12 @@ signal view_cleared
 ## Marca en get_tree().root que deja pause_menu.gd antes de recargar la escena
 ## para volver al menu: el monitor arranca ya fuera de cuadro, sin el boot.
 const SKIP_BOOT_META := &"anomaly_skip_boot"
+## Marca que deja restore_screen.gd tras un final: el monitor queda fuera de
+## cuadro sin mostrar el menu, y la partida arranca directo.
+const DIRECT_START_META := &"anomaly_direct_start"
+
+## Se emite en vez de view_cleared cuando la partida arranca directo.
+signal direct_start
 
 ## Nodo con look_illusion.gd que saca/trae el monitor de cuadro.
 @export var look_illusion: Node
@@ -27,6 +33,8 @@ const SKIP_BOOT_META := &"anomaly_skip_boot"
 @export var settings: Node
 ## Nodo con sfx.gd (opcional): sonidos de la terminal.
 @export var sfx: Node
+## Nodo con endings.gd: lo que muestra la pagina ENDINGS.
+@export var endings: Node
 @export var look_delay: float = 0.35
 ## Resolucion interna de la pantalla. Con auto_screen_size se reemplaza al
 ## iniciar por lo que el panel ocupa de verdad en la escena (a 180 filas):
@@ -62,7 +70,10 @@ func _ready() -> void:
 		_on_setting_changed("reduce_flashing", settings.get_value("reduce_flashing"))
 	_set_collapse(1.0)
 	var root := get_tree().root
-	if root.has_meta(SKIP_BOOT_META):
+	if root.has_meta(DIRECT_START_META):
+		root.remove_meta(DIRECT_START_META)
+		_skip_boot.call_deferred(true)
+	elif root.has_meta(SKIP_BOOT_META):
 		root.remove_meta(SKIP_BOOT_META)
 		_skip_boot.call_deferred()
 	else:
@@ -92,6 +103,7 @@ func _build_screen() -> void:
 	_terminal.set_script(load("res://scripts/crt_terminal.gd"))
 	_terminal.phosphor = phosphor
 	_terminal.settings = settings
+	_terminal.endings = endings
 	# La maqueta de la terminal es de CONTENT_SIZE; si la pantalla es mas
 	# grande, se centra y el resto se rellena con el mismo fondo.
 	var content: Vector2i = _terminal.CONTENT_SIZE
@@ -153,13 +165,16 @@ func _on_page_ready() -> void:
 
 ## Vuelta desde la pausa: el monitor ya "no esta" (la mirada quedo arriba) y
 ## el menu principal aparece como tras INITIALIZE.
-func _skip_boot() -> void:
+func _skip_boot(direct: bool = false) -> void:
 	_state = State.GONE
 	_set_collision(false)
 	_terminal.blank()
 	if look_illusion:
 		look_illusion.snap_away()
-	view_cleared.emit()
+	if direct:
+		direct_start.emit()
+	else:
+		view_cleared.emit()
 
 ## Trae el monitor de vuelta a cuadro y abre la pagina de ajustes.
 func open_settings() -> void:
@@ -171,6 +186,17 @@ func open_settings() -> void:
 		look_illusion.play_back()
 		await look_illusion.finished
 	_power_on(_terminal.start_settings)
+
+## Trae el monitor de vuelta a cuadro y abre la lista de finales.
+func open_endings() -> void:
+	if _state != State.GONE:
+		return
+	_state = State.RETURNING
+	_set_collision(true)
+	if look_illusion:
+		look_illusion.play_back()
+		await look_illusion.finished
+	_power_on(_terminal.start_endings)
 
 func _shut_down() -> void:
 	_state = State.SHUTTING_DOWN

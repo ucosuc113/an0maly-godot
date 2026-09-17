@@ -32,7 +32,22 @@ extends Node3D
 		march_steps = value
 		_mark_dirty()
 
+## Para cuando el agujero crece mas que la recamara: el volumen del raymarch
+## atraviesa las paredes y la prueba de profundidad normal lo taparia entero.
+## En este modo el shader corta cada rayo contra la profundidad de la escena:
+## lo de delante lo sigue tapando y el horizonte se traga lo que alcanza.
+@export var draw_over_everything: bool = false:
+	set(value):
+		draw_over_everything = value
+		_apply_shader_mode()
+
 @export_group("Disco")
+## Borde interior del disco, en radios del horizonte (~ISCO). Bajarlo acerca
+## el disco a la esfera.
+@export var disc_inner_ratio: float = 2.6:
+	set(value):
+		disc_inner_ratio = value
+		_mark_dirty()
 @export var disc_color_hot: Color = Color(1.0, 0.95, 0.8):
 	set(value):
 		disc_color_hot = value
@@ -56,6 +71,11 @@ extends Node3D
 @export_range(0.01, 0.5) var disc_thickness_ratio: float = 0.07:
 	set(value):
 		disc_thickness_ratio = value
+		_mark_dirty()
+## Caida del brillo hacia el borde. Bajala con discos enormes.
+@export_range(0.0, 2.0) var disc_falloff: float = 1.0:
+	set(value):
+		disc_falloff = value
 		_mark_dirty()
 @export var doppler_strength: float = 0.55:
 	set(value):
@@ -151,6 +171,19 @@ func _process(delta: float) -> void:
 	if _dirty:
 		_apply_params()
 
+func _apply_shader_mode() -> void:
+	if _material == null:
+		return
+	var base: Shader = load("res://shaders/black_hole_lensing.gdshader")
+	if draw_over_everything:
+		var over := Shader.new()
+		over.code = base.code.replace("depth_draw_never,", "depth_draw_never, depth_test_disabled,") \
+				.replace("shader_type spatial;", "shader_type spatial;\n#define MANUAL_DEPTH")
+		_material.shader = over
+	else:
+		_material.shader = base
+	_mark_dirty()
+
 func _mark_dirty() -> void:
 	_dirty = true
 
@@ -181,6 +214,7 @@ func _build_event_horizon() -> void:
 	_material = ShaderMaterial.new()
 	_material.shader = load("res://shaders/black_hole_lensing.gdshader")
 	mesh_instance.material_override = _material
+	_apply_shader_mode()
 
 	add_child(mesh_instance)
 
@@ -219,7 +253,7 @@ func _apply_params() -> void:
 	m.set_shader_parameter("event_horizon_radius", sphere_radius)
 	# ~ISCO: deja un hueco negro visible entre el horizonte y el disco.
 	m.set_shader_parameter("disc_inner_radius",
-			minf(sphere_radius * 2.6, disc_radius * 0.8))
+			minf(sphere_radius * disc_inner_ratio, disc_radius * 0.8))
 	m.set_shader_parameter("disc_outer_radius", disc_radius)
 	m.set_shader_parameter("disc_normal", tilt.y.normalized())
 	m.set_shader_parameter("bend_strength", bend_strength)
@@ -231,6 +265,7 @@ func _apply_params() -> void:
 	m.set_shader_parameter("disc_thickness",
 			maxf(disc_radius * disc_thickness_ratio, 0.0001))
 	m.set_shader_parameter("doppler_strength", doppler_strength)
+	m.set_shader_parameter("disc_falloff", disc_falloff)
 	m.set_shader_parameter("turbulence", turbulence)
 	# Relativos al tamano del disco, igual que el resto: invariantes a escala.
 	m.set_shader_parameter("noise_scale", noise_detail / maxf(disc_radius, 0.001))

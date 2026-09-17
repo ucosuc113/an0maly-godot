@@ -114,6 +114,23 @@ func _add_self_light(mi: MeshInstance3D, amount: float) -> void:
 		_lit.append([m, amount])
 
 ## Escala el brillo propio (0 = sin brillo, p. ej. en el apagon).
+## Mallas de aspas (para la onda expansiva y el agujero negro).
+func blade_meshes() -> Array:
+	return _fans.map(func(f: Dictionary) -> MeshInstance3D: return f.mesh)
+
+## Aspa arrancada (false) o de vuelta (true).
+func set_blade_active(mi: Node3D, active: bool) -> void:
+	for f in _fans:
+		if f.mesh == mi:
+			f.off = not active
+			mi.visible = active
+
+## Sacudon: el aspa vibra y pierde el paso un momento.
+func rattle(mi: Node3D, amount: float) -> void:
+	for f in _fans:
+		if f.mesh == mi:
+			f.rattle = maxf(f.get("rattle", 0.0), amount)
+
 func fade_self_light(scale: float, time: float) -> void:
 	var t := create_tween().set_parallel()
 	for pair in _lit:
@@ -123,11 +140,18 @@ func _process(delta: float) -> void:
 	if sim == null or _fans.is_empty():
 		return
 	var rps: float = sim.fan_rpm / 1000.0 * visual_rps_per_1000rpm
-	if rps <= 0.0:
-		return
 	_angle = wrapf(_angle + rps * TAU * delta, 0.0, TAU)
 	for f in _fans:
-		var rot := Basis(f.axis, _angle * f.dir)
+		if f.get("off", false):
+			continue
+		var shake: float = f.get("rattle", 0.0)
+		if rps <= 0.0 and shake <= 0.0:
+			continue
+		var rot := Basis(f.axis, _angle * f.dir + randf_range(-0.4, 0.4) * shake)
 		var pivot: Vector3 = f.pivot
 		var about := Transform3D(rot, pivot - rot * pivot)
-		f.mesh.transform = about * f.rest
+		var xf: Transform3D = about * f.rest
+		if shake > 0.0:
+			xf.origin += Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * 0.02 * shake
+			f.rattle = maxf(shake - delta * 1.5, 0.0)
+		f.mesh.transform = xf

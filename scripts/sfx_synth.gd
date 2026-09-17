@@ -67,6 +67,16 @@ static func build_room() -> Dictionary:
 		"beam_fire": _wav(beam_fire(rng), 0.55),
 		"shield_ignite": _wav(shield_ignite(rng), 0.7),
 		"breaker_off": _wav(breaker_off(rng), 0.6),
+		"siren": _wav(siren(), 0.35, true),
+		"spark": _wav(spark(rng), 0.45),
+		"glass_shatter": _wav(glass_shatter(rng), 0.7),
+		"implosion": _wav(implosion(rng), 0.7),
+		"explosion": _wav(explosion(rng), 0.95),
+		"cryo_freeze": _wav(cryo_freeze(rng), 0.55),
+		"ending_unlock": _wav(ending_unlock(), 0.45),
+		"shockwave": _wav(shockwave(rng), 0.9),
+		"metal_groan": _wav(metal_groan(rng), 0.6),
+		"devour": _wav(devour(rng), 0.8),
 	}
 
 # --- CRT ------------------------------------------------------------------
@@ -585,6 +595,204 @@ static func breaker_off(rng: RandomNumberGenerator) -> PackedFloat32Array:
 		var buzz := _soft_square(TAU * f * t, 2.0) * exp(-t / 0.25) * 0.2
 		s[i] = thunk * 0.8 + snap * 0.5 + buzz
 	return _reverb(s, 0.5, 1.5, 0.86, 0.35, 1.6)
+
+## Sirena de contencion en bucle (2.4 s = 4 pulsos a 100 BPM... y ciclos
+## enteros): dos tonos que suben y bajan, con un poco de distorsion.
+static func siren() -> PackedFloat32Array:
+	var n := _len(2.4)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var ph := 0.0
+	for i in n:
+		var t := float(i) / SR
+		# Barrido 520 <-> 780 Hz dos veces por bucle (seno: sin saltos).
+		var f := 650.0 + 130.0 * sin(TAU * t / 1.2)
+		ph += TAU * f / SR
+		s[i] = _soft_square(ph, 2.0) * 0.6 + sin(ph * 2.0) * 0.15
+	return s
+
+## Chispazo electrico corto.
+static func spark(rng: RandomNumberGenerator) -> PackedFloat32Array:
+	var n := _len(0.35)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var bp := _Biquad.bandpass(4500.0, 1.5)
+	var crack := 0.0
+	for i in n:
+		var t := float(i) / SR
+		if rng.randf() < 0.004 * exp(-t / 0.1):
+			crack = 1.0
+		crack *= 0.992
+		s[i] = bp.process(rng.randf_range(-1.0, 1.0)) * (crack + _ad(t, 0.0005, 0.02)) * 1.5
+	return _reverb(s, 0.25, 0.8, 0.7, 0.5, 0.3)
+
+## El escudo estalla: vidrio que se rompe en mil pedazos con un golpe grave.
+static func glass_shatter(rng: RandomNumberGenerator) -> PackedFloat32Array:
+	var n := _len(2.2)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var bp := _Biquad.bandpass(6000.0, 2.0)
+	var partials := []
+	for k in 24:
+		partials.append([rng.randf_range(2500.0, 9000.0), rng.randf_range(0.0, 0.9), rng.randf_range(0.05, 0.4)])
+	var ph := 0.0
+	for i in n:
+		var t := float(i) / SR
+		var tinkle := 0.0
+		for p in partials:
+			var dt: float = t - p[1]
+			if dt >= 0.0:
+				tinkle += sin(TAU * p[0] * dt) * exp(-dt / p[2]) * 0.12
+		var burst := bp.process(rng.randf_range(-1.0, 1.0)) * _ad(t, 0.001, 0.25)
+		ph += TAU * lerpf(80.0, 40.0, minf(t / 0.3, 1.0)) / SR
+		var thump := sin(ph) * _ad(t, 0.002, 0.3)
+		s[i] = tinkle + burst * 0.9 + thump * 0.8
+	return _reverb(s, 0.45, 1.5, 0.85, 0.35, 1.8)
+
+## Implosion: todo se chupa hacia dentro (ruido que se cierra y sube) y un
+## silencio seco al final.
+static func implosion(rng: RandomNumberGenerator) -> PackedFloat32Array:
+	var n := _len(0.5)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var bp := _Biquad.bandpass(200.0, 1.0)
+	var ph := 0.0
+	for i in n:
+		var t := float(i) / SR
+		var k := t / 0.5
+		if i % 32 == 0:
+			bp.set_bandpass(lerpf(150.0, 4000.0, k * k), 1.0)
+		ph += TAU * lerpf(40.0, 900.0, k * k * k) / SR
+		var env := pow(k, 2.0) * (1.0 - smoothstep(0.92, 1.0, k))
+		s[i] = (bp.process(rng.randf_range(-1.0, 1.0)) * 0.9 + sin(ph) * 0.5) * env
+	return s
+
+## La explosion final: impacto enorme, rugido largo y escombros.
+static func explosion(rng: RandomNumberGenerator) -> PackedFloat32Array:
+	var n := _len(6.0)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var lp := _OnePole.new(300.0)
+	var lp2 := _OnePole.new(1200.0)
+	var ph := 0.0
+	for i in n:
+		var t := float(i) / SR
+		var noise := rng.randf_range(-1.0, 1.0)
+		ph += TAU * lerpf(55.0, 22.0, minf(t / 1.5, 1.0)) / SR
+		var sub := tanh(3.0 * sin(ph)) * _ad(t, 0.003, 2.2)
+		var roar := lp.lp(noise) * _ad(t, 0.01, 2.5) * 2.5
+		var crack := lp2.lp(noise) * exp(-t / 0.08) * 2.0
+		var debris := 0.0
+		if rng.randf() < 0.002 * exp(-t / 2.0):
+			debris = rng.randf_range(-1.0, 1.0)
+		s[i] = tanh(sub * 1.2 + roar + crack + debris * 0.5)
+	return _reverb(s, 0.5, 1.8, 0.9, 0.3, 3.0)
+
+## Congelamiento: crujido de hielo que se extiende y un tono frio que baja.
+static func cryo_freeze(rng: RandomNumberGenerator) -> PackedFloat32Array:
+	var n := _len(7.0)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var bp := _Biquad.bandpass(3500.0, 3.0)
+	var ph := 0.0
+	var crack := 0.0
+	for i in n:
+		var t := float(i) / SR
+		var k := t / 7.0
+		if rng.randf() < 0.002 * sin(k * PI):
+			crack = rng.randf_range(0.5, 1.0)
+		crack *= 0.996
+		var ice := bp.process(rng.randf_range(-1.0, 1.0)) * crack * 1.4
+		ph += TAU * lerpf(900.0, 300.0, k) / SR
+		var tone := (sin(ph) + 0.4 * sin(ph * 2.01)) * sin(k * PI) * 0.12
+		var hiss := bp.process(rng.randf_range(-1.0, 1.0)) * 0.05 * (1.0 - k)
+		s[i] = ice + tone + hiss
+	return _reverb(s, 0.45, 1.6, 0.86, 0.3, 2.0)
+
+## Final desbloqueado: arpegio brillante y corto.
+static func ending_unlock() -> PackedFloat32Array:
+	var n := _len(1.2)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var notes := [[0.0, 659.25], [0.09, 880.0], [0.18, 1108.73], [0.27, 1318.5]]
+	for i in n:
+		var t := float(i) / SR
+		var v := 0.0
+		for nt in notes:
+			var dt: float = t - nt[0]
+			if dt >= 0.0:
+				v += (sin(TAU * nt[1] * dt) + 0.3 * sin(TAU * nt[1] * 2.0 * dt)) * _ad(dt, 0.003, 0.35)
+		s[i] = v * 0.4
+	return _echo(s, 0.13, 0.35, 0.6)
+
+## Onda expansiva: un golpe grave que se siente en el pecho, un soplo que
+## pasa de largo (el frente cruzando la sala) y un retumbar metalico.
+static func shockwave(rng: RandomNumberGenerator) -> PackedFloat32Array:
+	var n := _len(2.6)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var bp := _Biquad.bandpass(300.0, 0.8)
+	var lp := _OnePole.new(160.0)
+	var ph := 0.0
+	for i in n:
+		var t := float(i) / SR
+		if i % 64 == 0:
+			# El soplo sube y baja de tono como algo que pasa rapido.
+			bp.set_bandpass(lerpf(250.0, 1800.0, sin(clampf(t / 1.2, 0.0, 1.0) * PI)), 0.9)
+		ph += TAU * lerpf(62.0, 30.0, minf(t / 0.8, 1.0)) / SR
+		var thump := tanh(2.5 * sin(ph)) * _ad(t, 0.004, 0.55)
+		var whoosh := bp.process(rng.randf_range(-1.0, 1.0)) * sin(clampf(t / 1.3, 0.0, 1.0) * PI) * 0.8
+		var rumble := lp.lp(rng.randf_range(-1.0, 1.0)) * _ad(t, 0.05, 1.2) * 3.0
+		s[i] = thump + whoosh + rumble
+	return _reverb(s, 0.45, 1.8, 0.88, 0.4, 2.0)
+
+## Metal que cruje y se dobla: algo que esta a punto de arrancarse.
+static func metal_groan(rng: RandomNumberGenerator) -> PackedFloat32Array:
+	var n := _len(1.1)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var bp := _Biquad.bandpass(700.0, 6.0)
+	var ph := 0.0
+	var tick := 0.0
+	for i in n:
+		var t := float(i) / SR
+		var k := t / 1.1
+		# Friccion: pulsos irregulares que excitan un resonador metalico.
+		if rng.randf() < 0.012 + 0.03 * k:
+			tick = rng.randf_range(0.4, 1.0)
+		tick *= 0.97
+		ph += TAU * (90.0 + 25.0 * sin(t * 7.0) - 30.0 * k) / SR
+		var ring := bp.process(tick * rng.randf_range(-1.0, 1.0)) * 4.0
+		var groan := _soft_square(ph, 3.0) * 0.18 * sin(k * PI)
+		s[i] = ring + groan
+	return _reverb(s, 0.4, 1.4, 0.82, 0.35, 1.0)
+
+## Engullido: el objeto se estira hacia el horizonte (tono que cae), se
+## deshace en crujidos y todo termina en un chasquido sordo.
+static func devour(rng: RandomNumberGenerator) -> PackedFloat32Array:
+	var n := _len(2.2)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	var bp := _Biquad.bandpass(2000.0, 1.2)
+	var ph := 0.0
+	var crack := 0.0
+	for i in n:
+		var t := float(i) / SR
+		var k := t / 2.0
+		if i % 64 == 0:
+			bp.set_bandpass(lerpf(3000.0, 120.0, minf(k, 1.0)), 1.2)
+		ph += TAU * lerpf(420.0, 25.0, pow(minf(k, 1.0), 0.7)) / SR
+		var fall := (sin(ph) + 0.35 * _soft_square(ph * 0.5, 2.0)) * sin(minf(k, 1.0) * PI) * 0.5
+		var suck := bp.process(rng.randf_range(-1.0, 1.0)) * minf(k * 2.0, 1.0) * 0.7
+		if rng.randf() < 0.004 * (1.0 - k):
+			crack = rng.randf_range(0.6, 1.0)
+		crack *= 0.985
+		var crunch := rng.randf_range(-1.0, 1.0) * crack * 0.6
+		var end := 0.0
+		if t > 1.9:
+			end = sin(TAU * 45.0 * (t - 1.9)) * _ad(t - 1.9, 0.003, 0.12) * 1.2
+		s[i] = (fall + suck + crunch) * (1.0 - smoothstep(1.85, 1.95, t)) + end
+	return _reverb(s, 0.4, 1.6, 0.86, 0.4, 1.5)
 
 ## Encendido de luces industriales: golpe de interruptor grande con arco
 ## electrico, "tinks" de los balastos mientras los tubos pelean por prender

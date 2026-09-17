@@ -164,6 +164,27 @@ func shut_down(time: float = 3.0) -> void:
 	_play("breaker_off", 0.0, 0.8)
 	await s.finished
 
+## Luces de emergencia (derretimiento): las filas vuelven en rojo, con
+## tirones. on = false las apaga y les devuelve su color.
+var _base_color: Dictionary = {}
+
+func emergency(on: bool, color: Color = Color(1.0, 0.16, 0.08), factor: float = 1.1) -> void:
+	for row in _rows:
+		for l: Light3D in row.lights:
+			if not _base_color.has(l):
+				_base_color[l] = l.light_color
+			l.light_color = color if on else _base_color[l]
+			if not on:
+				l.visible = true
+		var steps := [[0.6, 0.05], [0.1, 0.07], [factor, 0.0]] if on else [[factor * 0.4, 0.05], [0.0, 0.0]]
+		var t := create_tween()
+		t.tween_interval(randf_range(0.0, 0.5))
+		for st in steps:
+			t.tween_callback(_set_row.bind(row, st[0]))
+			if st[1] > 0.0:
+				t.tween_interval(st[1])
+	_play("breaker_off", -4.0, 1.3 if on else 0.8)
+
 func _play(sound: String, volume_db: float = 0.0, pitch: float = 1.0) -> void:
 	if sfx:
 		sfx.play(sound, volume_db, pitch)

@@ -30,9 +30,14 @@ func _draw_header() -> void:
 	var alarm: int = sim.alarm()
 	var col := TITLE
 	var t := String(sim.status)
+	if sim.meltdown_eta >= 0.0:
+		var eta := int(ceil(sim.meltdown_eta))
+		t = "%s T-%02d:%02d" % [t, eta / 60, eta % 60]
 	if alarm > 0:
 		col = WARN if alarm == 2 or fmod(time, 0.8) < 0.55 else WARN.darkened(0.5)
 		t = "⚠ " + t + " ⚠"
+	elif sim.stabilizing > 0.0 or sim.frozen > 0.0:
+		col = COOL if fmod(time, 0.8) < 0.55 else COOL.darkened(0.4)
 	elif sim.shield_forming or sim.singularity_forming:
 		col = COOL if fmod(time, 0.8) < 0.55 else COOL.darkened(0.4)
 	elif sim.lasers_online:
