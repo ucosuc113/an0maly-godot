@@ -19,7 +19,8 @@ var _time: float = 0.0
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	process_mode = Node.PROCESS_MODE_ALWAYS
+	# PAUSABLE a proposito: con el juego en pausa, la restauracion espera.
+	process_mode = Node.PROCESS_MODE_PAUSABLE
 	visible = false
 
 ## `headline`: primera linea (p. ej. el motivo). Recarga la escena al final.
@@ -66,7 +67,7 @@ func _type(text: String, tone: int) -> void:
 			sfx.play("crt_ok", -4.0)
 
 func _wait(s: float) -> void:
-	await get_tree().create_timer(s, true).timeout
+	await get_tree().create_timer(s, false).timeout
 
 func _process(delta: float) -> void:
 	if visible:

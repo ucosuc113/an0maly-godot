@@ -11,6 +11,11 @@ extends Node3D
 # vista usa split_view.gd: la camara principal arriba y la del hijo en la
 # franja de abajo. Ahi el boton BACK va arriba para no tapar la franja.
 #
+# Las vistas pueden anidarse: si una declara `parent` al registrarse, BACK
+# vuelve a ESA y no a home_view. Asi, de la pantalla de un monitor de la sala
+# de emergencia se vuelve a la sala de emergencia, y de ahi si a la sala de
+# observacion. Sin esto, BACK se saltaba los niveles del medio.
+#
 # Fuera de home_view aparece el boton BACK (view_back_button.gd) y funcionan
 # las teclas de view_back (SPACE / S / flecha abajo / BACKSPACE / clic
 # derecho). Los nodos de home_interactables (con `enabled`) solo responden en
@@ -44,6 +49,9 @@ const NEXT_ACTION := &"view_next"
 @export var hold_time: float = 0.12
 
 var current: StringName
+## Vista a la que vuelve BACK desde cada una. Lo que no este aqui vuelve a
+## home_view, como siempre.
+var _parents: Dictionary = {}
 ## En una secuencia (fases del panel): sin boton BACK ni teclas para salir.
 var cinematic: bool = false:
 	set(value):
@@ -53,8 +61,17 @@ var cinematic: bool = false:
 				back_button.hide_bar()
 			if nav:
 				nav.hide_bar()
-		elif current == home_view and not _busy:
-			_set_home_interactive(true)
+		elif not _busy:
+			# Al salir hay que devolver lo que se escondio, y eso depende de
+			# donde quedo la camara: en la sala son los objetos clicables; en
+			# cualquier otra vista, la barra BACK (y las flechas si es del grupo).
+			if current == home_view:
+				_set_home_interactive(true)
+			else:
+				if back_button:
+					back_button.show_bar()
+				if nav and current in cycle_views:
+					nav.show_bar()
 var _busy: bool = false
 var _shake_tween: Tween
 
@@ -114,8 +131,16 @@ func _process(_delta: float) -> void:
 func is_busy() -> bool:
 	return _busy
 
+## Sube un nivel: a la vista padre si la declararon, si no a la sala.
 func back() -> void:
-	go_to(home_view)
+	go_to(_parents.get(current, home_view))
+
+## Declara de que vista cuelga `view` (para BACK). Vacio la desancla.
+func set_parent(view: StringName, parent: StringName) -> void:
+	if parent.is_empty():
+		_parents.erase(view)
+	else:
+		_parents[view] = parent
 
 ## Pasa a la vista vecina del grupo (dir -1 / +1).
 func cycle(dir: int) -> void:
@@ -124,8 +149,11 @@ func cycle(dir: int) -> void:
 		return
 	go_to(cycle_views[wrapi(i + dir, 0, cycle_views.size())])
 
-## Crea (o mueve) la vista `view` con la camara en `xf`.
-func register_view(view: StringName, xf: Transform3D) -> void:
+## Crea (o mueve) la vista `view` con la camara en `xf`. Con `parent`, BACK
+## desde ella vuelve ahi en vez de a la sala.
+func register_view(view: StringName, xf: Transform3D, parent: StringName = &"") -> void:
+	if not parent.is_empty():
+		_parents[view] = parent
 	var marker := get_node_or_null(NodePath(view)) as Node3D
 	if marker == null:
 		marker = Marker3D.new()

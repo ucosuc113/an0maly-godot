@@ -12,6 +12,17 @@ extends Node
 #
 # El fondo sigue sonando en la pausa; las pistas de fase se pausan con el
 # juego (asi las cinematicas no se desincronizan).
+#
+# OJO con la pausa: las cinematicas esperan con
+#
+#     while music.is_track_playing() and music.track_time() < t: ...
+#
+# y un AudioStreamPlayer pausado deja de estar `playing` y no tiene posicion
+# util. Si esos dos metodos se contestaran con el estado crudo del
+# reproductor, al pausar saldrian todos los `_at()` de golpe: la secuencia se
+# correria entera en dos cuadros mientras los tweens siguen congelados. Por
+# eso is_track_playing() responde "hay una pista en curso" (no "esta sonando
+# ahora") y track_time() devuelve la posicion congelada en vez de -1.
 
 signal track_finished
 
@@ -31,6 +42,9 @@ var _track: AudioStreamPlayer
 var _bg_tween: Tween
 var _track_tween: Tween
 var _bg_wanted: bool = false
+## Hay una pista de fase en curso: desde play_track() hasta que termina o la
+## paran. Sigue siendo true con el juego en pausa.
+var _track_live: bool = false
 
 func _ready() -> void:
 	_bg = AudioStreamPlayer.new()
@@ -48,7 +62,7 @@ func _ready() -> void:
 
 func start_background() -> void:
 	_bg_wanted = true
-	if _track.playing or background == null:
+	if _track_live or background == null:
 		return
 	_bg.volume_db = -60.0
 	if not _bg.playing:
@@ -72,28 +86,38 @@ func play_track(stream: AudioStream, volume_db: float = -6.0) -> void:
 		_track_tween.kill()
 	_track.stream = stream
 	_track.volume_db = volume_db
+	_track_live = true
 	_track.play()
 
+## Salta a un punto de la pista (el jugador adelanto el final a mano).
+func seek_track(seconds: float) -> void:
+	if _track_live:
+		_track.seek(maxf(seconds, 0.0))
+
 func duck_track(volume_db: float, time: float) -> void:
-	if _track.playing:
+	if _track_live:
 		_track_tween = _fade(_track, _track_tween, volume_db, time, Tween.EASE_IN_OUT)
 
 func stop_track(time: float = 1.5) -> void:
-	if not _track.playing:
+	if not _track_live:
 		return
 	_track_tween = _fade(_track, _track_tween, -60.0, time, Tween.EASE_IN)
 	_track_tween.finished.connect(func() -> void:
 		_track.stop()
 		_on_track_finished())
 
+## Hay una pista de fase en curso (aunque el juego este en pausa).
 func is_track_playing() -> bool:
-	return _track.playing
+	return _track_live
 
 ## Segundos de la pista que se estan escuchando ahora (compensa el buffer de
-## audio y la latencia de salida).
+## audio y la latencia de salida). -1 si no hay pista.
 func track_time() -> float:
-	if not _track.playing:
+	if not _track_live:
 		return -1.0
+	if not _track.playing:
+		# En pausa: la posicion queda quieta y las cinematicas esperan ahi.
+		return _track.get_playback_position()
 	return _track.get_playback_position() + AudioServer.get_time_since_last_mix() \
 		- AudioServer.get_output_latency()
 
@@ -106,6 +130,7 @@ static func load_stream(path: String) -> AudioStream:
 	return load(path) as AudioStream
 
 func _on_track_finished() -> void:
+	_track_live = false
 	track_finished.emit()
 	if _bg_wanted:
 		start_background()

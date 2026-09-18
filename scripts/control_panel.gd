@@ -92,7 +92,7 @@ func press_phase(index: int) -> bool:
 	running = index
 	phase_started.emit(index)
 	if placeholder_duration > 0.0 and index not in _handled:
-		await get_tree().create_timer(placeholder_duration).timeout
+		await get_tree().create_timer(placeholder_duration, false).timeout
 		complete_phase(index)
 	return true
 

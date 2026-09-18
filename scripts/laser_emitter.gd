@@ -23,6 +23,20 @@ extends Node3D
 #   overload(v)        sobrecarga (derretimiento): chispas, golpes al azar y el
 #                      plasma que se tine de rojo
 #
+# Durante el derretimiento el agujero negro no se lo traga entero: le arranca
+# las piezas de a una (singularity_hunger.gd). Las de arriba (Lanzador,
+# Guiadores, AnilloRotacion) salen en cualquier orden; el Inferior es siempre
+# la ultima, porque es el cuerpo: ahi se lleva el nucleo, la luz y el zumbido,
+# y el laser queda muerto.
+#
+#   loose_parts()      piezas sueltas (las de arriba)
+#   body_part()        el cuerpo (Inferior)
+#   tear_off(pieza)    se la arrancaron: a la PRIMERA se apaga el haz, el giro
+#                      se traba y el plasma queda titilando
+#   clamp_part(pieza)  el jugador la reenganchO a tiempo (anclaje de emergencia)
+#   restore_part(p)    vuelve a su sitio (al estabilizar)
+#   torn / dead        piezas perdidas y si ya no queda cuerpo
+#
 # El agujero por donde sale se calcula cruzando el eje con las mallas de
 # `walls`; si no hay, se usa hole_offset.
 #
@@ -83,6 +97,15 @@ const BEAM_SHADER = preload("res://shaders/laser_beam.gdshader")
 
 ## Estado para los monitores: hidden, rising, ready, online.
 var stage: StringName = &"hidden"
+## Piezas arrancadas (0..4) y si ya perdio el cuerpo.
+var torn: int = 0
+var dead: bool = false
+## Intensidad del haz antes del primer desgarro, para devolverla al reparar.
+var _beam_before: float = 0.0
+## Desplazamiento extra por pieza mientras el agujero negro tira de ella.
+## _apply() reescribe las posiciones cada cuadro, asi que el temblor tiene que
+## pasar por aca y no escribiendo part.position.
+var _part_shake: Dictionary = {}
 var _unit: float = 1.0
 var _retract: float = 0.0
 var _body_offset: float = 0.0
@@ -415,6 +438,31 @@ func overload(value: float) -> void:
 	if _beam_mat:
 		_beam_mat.set_shader_parameter("color", light_color.lerp(red, _overload * 0.7))
 
+## Retine el laser entero: plasma, bola, tiras, luz y haz. El apagado de
+## emergencia pasa los laterales a naranja, porque ahi dejan de contener la
+## singularidad y pasan a cortarla.
+func recolor(deep: Color, mid: Color, hot: Color, light: Color) -> void:
+	plasma_deep = deep
+	plasma_mid = mid
+	plasma_hot = hot
+	light_color = light
+	for m in _core_mats:
+		m.set_shader_parameter("deep_color", deep)
+		m.set_shader_parameter("mid_color", mid)
+		m.set_shader_parameter("hot_color", hot)
+	if _ball_mat:
+		_ball_mat.set_shader_parameter("deep_color", mid.darkened(0.2))
+		_ball_mat.set_shader_parameter("hot_color", hot)
+	if _halo_mat:
+		_halo_mat.set_shader_parameter("color", light)
+	for st in _strip_mats:
+		st.emission = mid.lerp(hot, 0.35)
+	if _light:
+		_light.light_color = light
+	if _beam_mat:
+		_beam_mat.set_shader_parameter("color", light)
+		_beam_mat.set_shader_parameter("core_color", hot)
+
 ## Chispazo suelto (golpes de la onda expansiva).
 func spark(strength: float = 1.0) -> void:
 	_spark_burst(clampf(strength, 0.0, 1.0))
@@ -437,6 +485,122 @@ func restored(beam: float) -> void:
 		create_tween().tween_property(_hum, "volume_db", -8.0, 1.0)
 	set_beam(beam, 1.0)
 	pulse(1.5)
+
+# --- Piezas (el agujero negro lo desarma) ------------------------------------------
+
+## Piezas que se pueden arrancar sin matarlo, de arriba hacia abajo.
+func loose_parts() -> Array[Node3D]:
+	return [_launcher, _guides, _ring]
+
+## El cuerpo: nucleo, recamara, luz y zumbido. Siempre la ultima.
+func body_part() -> Node3D:
+	return _inferior
+
+## Sigue disparando: mientras no le falte ninguna pieza.
+func operational() -> bool:
+	return torn == 0 and not dead
+
+## Le arrancaron `part`. Con la primera se apaga el haz y el giro se traba;
+## con el cuerpo se apaga todo.
+func tear_off(part: Node3D) -> void:
+	if part == null or not part.visible:
+		return
+	if torn == 0:
+		_beam_before = _beam_intensity
+		# El haz se corta de golpe (no se desvanece: se corta).
+		set_beam(0.0, 0.12)
+		# El giro se traba a tirones.
+		var brake := create_tween().set_parallel()
+		brake.tween_property(self, "_ring_speed", _ring_speed * 0.15, 0.9) \
+			.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+		brake.tween_property(self, "_head_speed", _head_speed * 0.1, 1.3) \
+			.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+		# El plasma pierde contencion: queda titilando bajo.
+		_flicker([0.2, 0.9, 0.05, 0.6, 0.15, 0.35])
+		charge_up(0.45, 0.8)
+		if _hum:
+			create_tween().tween_property(_hum, "volume_db", -20.0, 0.6)
+	part.visible = false
+	_part_shake.erase(part)
+	torn += 1
+	if part == _inferior:
+		dead = true
+		_set_charge(0.0)
+		_set_glow(0.0)
+		_light.visible = false
+		if _hum:
+			_hum.stop()
+	else:
+		# Sin esa pieza el resto queda descompensado: se sacude y chispea peor.
+		overload(maxf(_overload, 0.6 + 0.12 * torn))
+	_spark_burst(1.0)
+	pulse(1.8)
+	_play("breaker_off", -6.0, randf_range(0.8, 1.0))
+
+## El jugador la reengancho a tiempo: los clamps muerden y la pieza aguanta.
+func clamp_part(part: Node3D) -> void:
+	if part == null:
+		return
+	_play("laser_lock", -4.0, randf_range(1.0, 1.15))
+	pulse(1.2)
+	# Los clamps muerden: la pieza vuelve a su sitio de un tiron.
+	var away: Vector3 = _part_shake.get(part, Vector3.ZERO)
+	var t := create_tween()
+	t.tween_method(func(v: float) -> void:
+		shake_part(part, away.lerp(Vector3.ZERO, v)), 0.0, 1.0, 0.3) \
+		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	t.tween_callback(shake_part.bind(part, Vector3.ZERO))
+
+## Vuelve a su sitio (estabilizacion). Con todas puestas, el haz vuelve.
+func restore_part(part: Node3D) -> void:
+	if part == null:
+		return
+	part.visible = true
+	torn = maxi(torn - 1, 0)
+	if part == _inferior:
+		dead = false
+		_light.visible = true
+		_set_charge(1.0)
+		_set_glow(1.0)
+		if _hum and not _hum.playing:
+			_hum.play()
+	if _hum:
+		create_tween().tween_property(_hum, "volume_db", -8.0, 1.0)
+	pulse(1.4)
+	if torn == 0:
+		var spin := create_tween().set_parallel()
+		spin.tween_property(self, "_ring_speed", -spin_speed, 1.4).set_trans(Tween.TRANS_SINE)
+		spin.tween_property(self, "_head_speed", spin_speed, 1.4).set_trans(Tween.TRANS_SINE)
+		charge_up(1.0, 1.2)
+		_set_glow(1.0)
+		set_beam(_beam_before, 1.0)
+
+## Temblor de una pieza mientras el agujero negro tira de ella (espacio local
+## del laser). Vector3.ZERO la deja quieta.
+func shake_part(part: Node3D, offset: Vector3) -> void:
+	if offset.is_zero_approx():
+		_part_shake.erase(part)
+	else:
+		_part_shake[part] = offset
+
+## Deja quietas todas las piezas (al estabilizar).
+func clear_shakes() -> void:
+	_part_shake.clear()
+
+## Cuanto mide un metro en el espacio local del laser (los FBX vienen
+## escalados): sirve para pedir temblores en metros reales.
+func local_unit() -> float:
+	return maxf(_unit, 0.001)
+
+func _shake_of(part: Node3D) -> Vector3:
+	return _part_shake.get(part, Vector3.ZERO)
+
+## Tirones de las tiras (v, en pasos de 0.06 s).
+func _flicker(values: Array) -> void:
+	var t := create_tween()
+	for v in values:
+		t.tween_callback(_set_glow.bind(float(v)))
+		t.tween_interval(0.06)
 
 func _spark_burst(strength: float) -> void:
 	if _sparks == null:
@@ -556,11 +720,13 @@ func _process(delta: float) -> void:
 		m.emission_energy_multiplier = strip_energy * _glow * lerpf(0.4, 1.0, _light_scale)
 
 func _apply() -> void:
-	_inferior.position = Vector3(0.0, _body_offset, 0.0)
-	_ring.position = Vector3(0.0, _body_offset, 0.0)
+	var body := Vector3(0.0, _body_offset, 0.0)
+	var head := Vector3(0.0, _head_offset, 0.0)
+	_inferior.position = body + _shake_of(_inferior)
+	_ring.position = body + _shake_of(_ring)
 	_ring.rotation = Vector3(0.0, _ring_angle, 0.0)
-	_guides.position = Vector3(0.0, _head_offset, 0.0)
-	_launcher.position = Vector3(0.0, _head_offset, 0.0)
+	_guides.position = head + _shake_of(_guides)
+	_launcher.position = head + _shake_of(_launcher)
 	# Lanzador horario, Guiadores antihorario (misma velocidad).
 	_launcher.rotation = Vector3(0.0, -_head_angle, 0.0)
 	_guides.rotation = Vector3(0.0, _head_angle, 0.0)

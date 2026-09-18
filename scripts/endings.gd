@@ -17,6 +17,8 @@ const SECTION := "endings"
 const ENDINGS := [
 	{"id": &"freeze", "title": "CRYOGENIC COLLAPSE", "hint": "COLD IS ALSO A WEAPON"},
 	{"id": &"meltdown", "title": "EVENT HORIZON BREACH", "hint": "LET IT BURN"},
+	{"id": &"detonation", "title": "CORE DETONATION", "hint": "THERE IS A SECOND CONSOLE"},
+	{"id": &"failed_freeze", "title": "FLASH FREEZE FAILURE", "hint": "TOO LATE FOR THE RESERVES"},
 	{"id": &"shutdown", "title": "EMERGENCY SHUTDOWN", "hint": "PULL THE PLUG IN TIME"},
 	{"id": &"averted", "title": "CATASTROPHE AVERTED", "hint": "COOL IT BEFORE IT ENDS"},
 ]

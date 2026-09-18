@@ -10,6 +10,12 @@ extends "res://scripts/mesh_interactable.gd"
 # pixel de la pantalla sea un pixel del juego, y se registra en
 # camera_views.gd con el nombre view_name.
 #
+# Ya EN esa vista, la pantalla se opera con el mouse: el clic sobre la malla
+# se convierte en un pixel de la pantalla (screen_at) y se le pasa al
+# contenido (monitor_screen.on_screen_click / on_screen_hover). Asi el
+# rearmado de circuitos del monitor derecho vive dentro del SubViewport, con
+# el mismo shader de LCD que el resto, en vez de ser una capa encima.
+#
 #   await monitor.power_on()     titila, barre la pantalla y arranca
 
 const LCD_SHADER = preload("res://shaders/lcd_screen.gdshader")
@@ -27,6 +33,8 @@ const LCD_SHADER = preload("res://shaders/lcd_screen.gdshader")
 ## Lasers que dibuja el esquema (monitor central).
 @export var lateral_lasers: Array[Node] = []
 @export var diagonal_lasers: Array[Node] = []
+## Nodo con coolant_routing.gd (monitor derecho).
+@export var routing: Node
 ## Cuanto sube la pantalla en la vista enfocada (px), para no quedar debajo
 ## del boton BACK.
 @export var focus_raise_px: int = 8
@@ -39,11 +47,19 @@ var _normal: Vector3
 var _up: Vector3
 var _width_m: float = 1.0
 var powered: bool = false
+## Marco de la pantalla en el plano, para mapear un punto del mundo a pixeles.
+var _right: Vector3 = Vector3.RIGHT
+var _min_x: float = 0.0
+var _span_x: float = 1.0
+var _max_y: float = 0.0
+var _span_y: float = 1.0
 
 func _ready() -> void:
 	super._ready()
 	_build_screen()
 	_register_view.call_deferred()
+	if views:
+		views.view_changed.connect(_on_view_changed)
 
 func _build_screen() -> void:
 	_viewport = SubViewport.new()
@@ -65,6 +81,8 @@ func _build_screen() -> void:
 	if "lateral_lasers" in screen:
 		screen.lateral_lasers = lateral_lasers
 		screen.diagonal_lasers = diagonal_lasers
+	if "routing" in screen:
+		screen.routing = routing
 	_viewport.add_child(screen)
 
 	_lcd = ShaderMaterial.new()
@@ -100,6 +118,7 @@ func _measure(mi: MeshInstance3D, s: int) -> void:
 		_normal = -_normal
 	_up = (Vector3.UP - _normal * Vector3.UP.dot(_normal)).normalized()
 	var right := _up.cross(_normal)
+	_right = right
 
 	# Coordenadas de pantalla de cada vertice: x hacia la derecha, y hacia
 	# abajo, 0..1.
@@ -114,6 +133,10 @@ func _measure(mi: MeshInstance3D, s: int) -> void:
 		min_y = minf(min_y, p.dot(_up))
 		max_y = maxf(max_y, p.dot(_up))
 	_width_m = max_x - min_x
+	_min_x = min_x
+	_span_x = maxf(max_x - min_x, 0.0001)
+	_max_y = max_y
+	_span_y = maxf(max_y - min_y, 0.0001)
 	var st := PackedVector2Array()
 	for w in world:
 		var p := w - _center
@@ -127,6 +150,56 @@ func _measure(mi: MeshInstance3D, s: int) -> void:
 	# basis_xform(uv) = x * uv.x + y * uv.y: filas (x.x, y.x) y (x.y, y.y).
 	_lcd.set_shader_parameter("uv_matrix", Vector4(a.x.x, a.y.x, a.x.y, a.y.y))
 	_lcd.set_shader_parameter("uv_offset", offset)
+
+# --- La pantalla se opera con el mouse -----------------------------------------
+
+## Punto del mundo sobre la pantalla -> pixel de la pantalla (0,0 arriba a la
+## izquierda, en las unidades de screen_size).
+func screen_at(world: Vector3) -> Vector2:
+	var p := world - _center
+	return Vector2((p.dot(_right) - _min_x) / _span_x * screen_size.x,
+		(_max_y - p.dot(_up)) / _span_y * screen_size.y)
+
+## La camara esta enfocada en esta pantalla (y quieta).
+func focused() -> bool:
+	return views != null and views.current == view_name and not views.is_busy()
+
+## camera_views.gd solo enciende los home_interactables en la vista de la
+## sala; aca hace falta seguir clicable tambien en la vista propia.
+func _on_view_changed(view: StringName) -> void:
+	enabled = view == view_name
+	_leave_screen()
+
+func _on_clicked(hit_position: Vector3) -> void:
+	if not focused():
+		super._on_clicked(hit_position)
+		return
+	if screen and screen.has_method("on_screen_click"):
+		screen.on_screen_click(screen_at(hit_position))
+
+func on_pointer_move(hit_position: Vector3) -> void:
+	super.on_pointer_move(hit_position)
+	if screen == null or not screen.has_method("on_screen_hover"):
+		return
+	if not focused():
+		screen.on_screen_hover(Vector2(-1, -1))
+		return
+	screen.on_screen_hover(screen_at(hit_position))
+	if pointing_cursor:
+		Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND \
+			if screen.wants_pointer() else Input.CURSOR_ARROW)
+
+func on_pointer_exit() -> void:
+	super.on_pointer_exit()
+	_leave_screen()
+
+func _leave_screen() -> void:
+	if screen and screen.has_method("on_screen_hover"):
+		screen.on_screen_hover(Vector2(-1, -1))
+
+## En la vista enfocada no se resalta la carcasa: estorba mientras se opera.
+func _on_hover_changed(hovering: bool) -> void:
+	super._on_hover_changed(hovering and not focused())
 
 func _register_view() -> void:
 	if views == null or view_name.is_empty():

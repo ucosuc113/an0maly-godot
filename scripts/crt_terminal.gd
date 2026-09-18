@@ -434,25 +434,46 @@ func _draw_endings() -> void:
 		phosphor if _saved_flash > 0.0 else _tone(0))
 	_draw_dotted_line(19, MARGIN.x, right)
 
+	# Una linea por final. Antes iban dos (titulo + pista) a 19 px, que con
+	# cuatro finales entraba justo y con seis se metia encima de los botones.
+	# La pista ya no ocupa una fila por entrada: va abajo, rotando entre las
+	# que faltan, que ademas se lee mejor que seis pistas amontonadas.
+	# El alto de fila sale de cuantos finales haya, para que agregar uno mas
+	# no vuelva a desbordar la pagina.
+	const TOP := 22
+	const CLUE_Y := 95
+	var step: int = clampi((CLUE_Y - 3 - TOP) / maxi(list.size(), 1), 9, 13)
+	var locked: Array = []
 	for i in list.size():
 		var e: Dictionary = list[i]
-		var y: int = 24 + i * 19
+		var y: int = TOP + i * step
 		var got: bool = endings.is_unlocked(e.id)
 		var num := "%02d" % (i + 1)
 		PixelFont.draw(self, num, Vector2(MARGIN.x, y), _tone(2) if got else _tone(0))
 		if got:
 			PixelFont.draw(self, e.title, Vector2(MARGIN.x + 16, y), phosphor)
-			# Marca de desbloqueado que late.
+			var rec := "REC"
+			PixelFont.draw(self, rec, Vector2(right - PixelFont.text_width(rec) - 6, y),
+				_tone(0))
+			# Marca que late.
 			if fmod(_time + i * 0.3, 1.6) < 1.2:
-				draw_rect(Rect2(right - 4, y + 2, 3, 3), _tone(2))
+				draw_rect(Rect2(right - 3, y + 2, 3, 3), _tone(2))
 		else:
-			# Titulo oculto: bloques que titilan.
+			locked.append(e)
+			# Titulo oculto: bloques que titilan y dejan ver el largo.
 			var hidden := ""
 			for c in e.title.length():
 				hidden += " " if e.title[c] == " " else ("#" if fmod(_time * 3.0 + c * 0.37, 2.0) < 1.0 else "-")
 			PixelFont.draw(self, hidden, Vector2(MARGIN.x + 16, y), _tone(0).darkened(0.3))
-		PixelFont.draw(self, ("> " + e.hint) if not got else "RECORDED", Vector2(MARGIN.x + 16, y + 9),
-			_tone(0).darkened(0.25) if not got else _tone(0))
+
+	# La pista de un final que falte, rotando cada pocos segundos.
+	var clue := "ALL OUTCOMES RECORDED"
+	var clue_color := _tone(2)
+	if not locked.is_empty():
+		var pick: Dictionary = locked[int(_time / 3.5) % locked.size()]
+		clue = "> " + String(pick.hint)
+		clue_color = _tone(0).darkened(0.2)
+	PixelFont.draw(self, clue, Vector2(MARGIN.x, CLUE_Y), clue_color)
 
 	_draw_dotted_line(102, MARGIN.x, right)
 	_draw_frame_button("back", BACK_TEXT, w / 2 - 36, 110)

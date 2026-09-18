@@ -78,13 +78,36 @@
 [ext_resource type="Script" uid="uid://r5knmhd2o6il" path="res://scripts/restore_screen.gd" id="58_restore"]
 [ext_resource type="Script" uid="uid://bc2euucntoh6l" path="res://scripts/alert_overlay.gd" id="59_alert"]
 [ext_resource type="Script" uid="uid://bk7xu6h25q5wh" path="res://scripts/crisis_director.gd" id="60_crisis"]
-[ext_resource type="Script" path="res://scripts/singularity_hunger.gd" id="61_hunger"]
+[ext_resource type="Script" uid="uid://cyrgjgiq2yi55" path="res://scripts/singularity_hunger.gd" id="61_hunger"]
 [ext_resource type="PackedScene" uid="uid://ddcalvickbsrr" path="res://assets/MonitorCentral.fbx" id="61_sm6fg"]
 [ext_resource type="PackedScene" uid="uid://jduegswiv4oi" path="res://assets/MonitorDer.fbx" id="62_b17eg"]
 [ext_resource type="PackedScene" uid="uid://c44xirenvbmve" path="res://assets/MonitorIzq.fbx" id="63_ntx8l"]
+[ext_resource type="Script" uid="uid://gyh3xiavqkil" path="res://scripts/clamp_prompts.gd" id="64_clamps"]
+[ext_resource type="Script" uid="uid://dta5i7dsp3i8h" path="res://scripts/coolant_routing.gd" id="67_route"]
+[ext_resource type="Script" uid="uid://b8ktrhhbcq63g" path="res://scripts/dev_shortcuts.gd" id="68_dev"]
 [ext_resource type="PackedScene" uid="uid://c0eps2gt66r5i" path="res://assets/ChasisVentiladores.fbx" id="70_jx0wj"]
 [ext_resource type="PackedScene" uid="uid://c3u5hephiyi8w" path="res://assets/AspasVentiladoresLaterales.fbx" id="71_kkkcx"]
 [ext_resource type="PackedScene" uid="uid://cr480ubaqdwd5" path="res://assets/AspasVentiladoresSuperiores.fbx" id="72_34ol3"]
+[ext_resource type="PackedScene" uid="uid://yoshksyrxkna" path="res://assets/Emergency room/BaseBotonAbrirEmergency.fbx" id="89_jcxqu"]
+[ext_resource type="PackedScene" uid="uid://c8oft54bsvxut" path="res://assets/Emergency room/BotonAbrirEmergency.fbx" id="90_0arob"]
+[ext_resource type="PackedScene" uid="uid://cvcsvkbw8mta8" path="res://assets/Emergency room/BotonCriogenico.fbx" id="91_dij0e"]
+[ext_resource type="PackedScene" uid="uid://cl6wg71lyj81i" path="res://assets/Emergency room/CristalDesplegableBotonCriogenico.fbx" id="92_k1udn"]
+[ext_resource type="PackedScene" uid="uid://ch63nt563ipr6" path="res://assets/Emergency room/LlaveModelo.fbx" id="93_wat4s"]
+[ext_resource type="PackedScene" uid="uid://blj6g1jx4yr8b" path="res://assets/Emergency room/LucesLlaves.fbx" id="94_ywjan"]
+[ext_resource type="PackedScene" uid="uid://bin7c16nqjqq0" path="res://assets/Emergency room/LuzDer.fbx" id="95_m74q3"]
+[ext_resource type="PackedScene" uid="uid://v0wmw8x0yp2s" path="res://assets/Emergency room/LuzIzq.fbx" id="96_tko6h"]
+[ext_resource type="PackedScene" uid="uid://ccbygr6weccrx" path="res://assets/Emergency room/MonitorDer.fbx" id="97_am8a1"]
+[ext_resource type="PackedScene" uid="uid://bj2a0byhpbyio" path="res://assets/Emergency room/MonitorIzq.fbx" id="98_8dc3g"]
+[ext_resource type="PackedScene" uid="uid://d3cbxie3k47i0" path="res://assets/Emergency room/MonitorUp.fbx" id="99_htgcl"]
+[ext_resource type="PackedScene" uid="uid://cfsrh2u30vmbh" path="res://assets/Emergency room/PalancaDer.fbx" id="100_smeu8"]
+[ext_resource type="PackedScene" uid="uid://c4hqmxisruelt" path="res://assets/Emergency room/PalancaIzq.fbx" id="101_f3y11"]
+[ext_resource type="PackedScene" uid="uid://ddkgyeymobr2x" path="res://assets/Emergency room/PuertaEmergency.fbx" id="102_cpm2s"]
+[ext_resource type="PackedScene" uid="uid://dyvy8sjrtmqap" path="res://assets/Emergency room/TableEmergency.fbx" id="103_u81y6"]
+[ext_resource type="Script" uid="uid://dqn58gq6fyslo" path="res://scripts/emergency_room.gd" id="104_eroom"]
+[ext_resource type="Script" uid="uid://dijw5l25dcubm" path="res://scripts/emergency_button.gd" id="105_ebtn"]
+[ext_resource type="Script" uid="uid://k13tx5j0y2kf" path="res://scripts/focus_target.gd" id="106_focus"]
+[ext_resource type="Script" uid="uid://ddenawlpio2th" path="res://scripts/screen_panel.gd" id="107_screen"]
+[ext_resource type="Script" uid="uid://cn0myukyokojt" path="res://scripts/emergency_screen.gd" id="108_escreen"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_b1q74"]
 size = Vector3(2.4763794, 1.9730225, 0.56921387)
@@ -117,7 +140,7 @@ shader_parameter/edge_color = Color(1, 0.55, 0.15, 1)
 shader_parameter/edge_width = 0.12
 shader_parameter/noise_mix = 0.35
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_ppx11"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ywjan"]
 shader = ExtResource("9_ycdy4")
 shader_parameter/progress = 1.0
 shader_parameter/edge_color = Color(1, 0.55, 0.15, 1)
@@ -175,6 +198,18 @@ script = ExtResource("56_endings")
 [node name="Sfx" type="Node" parent="." unique_id=1350970948]
 process_mode = 3
 script = ExtResource("13_sfx")
+
+[node name="DevShortcuts" type="Node" parent="." unique_id=625124261 node_paths=PackedStringArray("panel", "music", "crisis", "overlay", "intro", "views", "pause_menu", "room", "sim")]
+script = ExtResource("68_dev")
+panel = NodePath("../PixelViewport/ControlPanel")
+music = NodePath("../GameMusic")
+crisis = NodePath("../PixelViewport/Crisis")
+overlay = NodePath("../PixelViewport/HudLayer/AlertOverlay")
+intro = NodePath("../GameIntro")
+views = NodePath("../PixelViewport/CameraViews")
+pause_menu = NodePath("../PixelViewport/PauseLayer/PauseMenu")
+room = NodePath("../PixelViewport/EmergencyCtl")
+sim = NodePath("../PixelViewport/ReactorSim")
 
 [node name="Music" type="Node" parent="." unique_id=1888876879]
 script = ExtResource("14_music")
@@ -433,14 +468,230 @@ model = NodePath("..")
 [node name="MonitorDer" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=1800786016 instance=ExtResource("62_b17eg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0027545989, 0, 0.06066802)
 
-[node name="MonitorBody" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/MonitorDer" unique_id=1760000002 node_paths=PackedStringArray("sim", "views", "model")]
+[node name="MonitorBody" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/MonitorDer" unique_id=1760000002 node_paths=PackedStringArray("sim", "routing", "views", "model")]
 script = ExtResource("44_imon")
 screen_script = ExtResource("47_mright")
 boot_title = "COOLING"
 sim = NodePath("../../../ReactorSim")
+routing = NodePath("../../../CoolantRouting")
 views = NodePath("../../../CameraViews")
 view_name = &"MonitorDer"
 model = NodePath("..")
+
+[node name="EmergencyRoom" type="Node3D" parent="PixelViewport/MapAnomalyPlayerRoom" unique_id=117573630]
+
+[node name="BaseBotonAbrirEmergency" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom" unique_id=1489737301 instance=ExtResource("89_jcxqu")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.005, 0, -0.00045)
+
+[node name="BotonAbrirEmergency" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom" unique_id=369992193 instance=ExtResource("90_0arob")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.005, 0, -0.00045)
+
+[node name="OpenDoorButton" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom/BotonAbrirEmergency" unique_id=1974917320 node_paths=PackedStringArray("room", "views", "model")]
+script = ExtResource("105_ebtn")
+room = NodePath("../../../../EmergencyCtl")
+usable_in_view = &"Room"
+focus_view = &"EmergencyButton"
+outline_style = 1
+outline_width = 0.003
+outline_depth_push = 0.002
+hover_energy = 0.5
+views = NodePath("../../../../CameraViews")
+model = NodePath("..")
+collision_from_mesh = true
+
+[node name="BotonCriogenico" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom" unique_id=439573494 instance=ExtResource("91_dij0e")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.005, 0, -0.00045)
+
+[node name="PurgeButton" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom/BotonCriogenico" unique_id=2079430324 node_paths=PackedStringArray("room", "views", "model")]
+script = ExtResource("105_ebtn")
+room = NodePath("../../../../EmergencyCtl")
+action = 2
+usable_in_view = &"EmergencyPanel"
+outline_style = 1
+outline_width = 0.003
+outline_depth_push = 0.002
+hover_energy = 0.5
+views = NodePath("../../../../CameraViews")
+model = NodePath("..")
+collision_from_mesh = true
+
+[node name="CristalDesplegableBotonCriogenico" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom" unique_id=591117243 instance=ExtResource("92_k1udn")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.005, 0, -0.00045)
+
+[node name="CoverLatch" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom/CristalDesplegableBotonCriogenico" unique_id=1604779500 node_paths=PackedStringArray("room", "views", "model")]
+script = ExtResource("105_ebtn")
+room = NodePath("../../../../EmergencyCtl")
+action = 1
+usable_in_view = &"EmergencyPanel"
+press_depth = 0.0
+outline_style = 1
+outline_width = 0.003
+outline_depth_push = 0.002
+hover_energy = 0.5
+views = NodePath("../../../../CameraViews")
+model = NodePath("..")
+collision_from_mesh = true
+
+[node name="LlaveModelo" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom" unique_id=1747232291 instance=ExtResource("93_wat4s")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.005, 0, -0.00045)
+
+[node name="KeySlot" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom/LlaveModelo" unique_id=99814780 node_paths=PackedStringArray("room", "views", "model")]
+script = ExtResource("105_ebtn")
+room = NodePath("../../../../EmergencyCtl")
+action = 3
+usable_in_view = &"EmergencyPanel"
+press_depth = 0.0
+outline_style = 1
+outline_width = 0.003
+outline_depth_push = 0.002
+hover_energy = 0.5
+views = NodePath("../../../../CameraViews")
+model = NodePath("..")
+collision_from_mesh = true
+
+[node name="LucesLlaves" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom" unique_id=1634894472 instance=ExtResource("94_ywjan")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.005, 0, -0.00045)
+
+[node name="LuzDer" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom" unique_id=1677469751 instance=ExtResource("95_m74q3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.005, 0, -0.00045)
+
+[node name="LuzIzq" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom" unique_id=974100940 instance=ExtResource("96_tko6h")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.005, 0, -0.00045)
+
+[node name="MonitorDer" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom" unique_id=661177243 instance=ExtResource("97_am8a1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.005, 0, -0.00045)
+
+[node name="Screen" type="Node3D" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom/MonitorDer" unique_id=2010767176 node_paths=PackedStringArray("views", "sim", "crisis", "room")]
+script = ExtResource("107_screen")
+screen_script = ExtResource("108_escreen")
+boot_title = "COOLING"
+views = NodePath("../../../../CameraViews")
+view_name = &"EmergencyCooling"
+parent_view = &"Emergency"
+sim = NodePath("../../../../ReactorSim")
+crisis = NodePath("../../../../Crisis")
+room = NodePath("../../../../EmergencyCtl")
+
+[node name="MonitorFocus" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom/MonitorDer" unique_id=366223400 node_paths=PackedStringArray("views", "model")]
+script = ExtResource("106_focus")
+from_views = Array[StringName]([&"Emergency"])
+to_views = Array[StringName]([&"EmergencyCooling"])
+views = NodePath("../../../../CameraViews")
+model = NodePath("..")
+collision_from_mesh = true
+
+[node name="MonitorIzq" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom" unique_id=1559914580 instance=ExtResource("98_8dc3g")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.005, 0, -0.00045)
+
+[node name="Screen" type="Node3D" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom/MonitorIzq" unique_id=2035693051 node_paths=PackedStringArray("views", "sim", "crisis", "room")]
+script = ExtResource("107_screen")
+screen_script = ExtResource("108_escreen")
+boot_title = "CORE"
+screen_mode = 1
+views = NodePath("../../../../CameraViews")
+view_name = &"EmergencyCore"
+parent_view = &"Emergency"
+sim = NodePath("../../../../ReactorSim")
+crisis = NodePath("../../../../Crisis")
+room = NodePath("../../../../EmergencyCtl")
+
+[node name="MonitorFocus" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom/MonitorIzq" unique_id=230446772 node_paths=PackedStringArray("views", "model")]
+script = ExtResource("106_focus")
+from_views = Array[StringName]([&"Emergency"])
+to_views = Array[StringName]([&"EmergencyCore"])
+views = NodePath("../../../../CameraViews")
+model = NodePath("..")
+collision_from_mesh = true
+
+[node name="MonitorUp" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom" unique_id=2078506991 instance=ExtResource("99_htgcl")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.005, 0, -0.00045)
+
+[node name="Screen" type="Node3D" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom/MonitorUp" unique_id=254580969 node_paths=PackedStringArray("views", "sim", "crisis", "room")]
+script = ExtResource("107_screen")
+screen_script = ExtResource("108_escreen")
+screen_width_px = 240
+boot_title = "ENVELOPE"
+screen_mode = 2
+views = NodePath("../../../../CameraViews")
+view_name = &"EmergencyEnvelope"
+parent_view = &"Emergency"
+sim = NodePath("../../../../ReactorSim")
+crisis = NodePath("../../../../Crisis")
+room = NodePath("../../../../EmergencyCtl")
+
+[node name="MonitorFocus" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom/MonitorUp" unique_id=1749705510 node_paths=PackedStringArray("views", "model")]
+script = ExtResource("106_focus")
+from_views = Array[StringName]([&"Emergency"])
+to_views = Array[StringName]([&"EmergencyEnvelope"])
+views = NodePath("../../../../CameraViews")
+model = NodePath("..")
+collision_from_mesh = true
+
+[node name="PalancaDer" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom" unique_id=1455035818 instance=ExtResource("100_smeu8")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.005, 0, -0.00045)
+
+[node name="SwitchShutdown" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom/PalancaDer" unique_id=567104347 node_paths=PackedStringArray("room", "views", "model")]
+script = ExtResource("105_ebtn")
+room = NodePath("../../../../EmergencyCtl")
+action = 4
+switch_index = 1
+usable_in_view = &"EmergencyPanel"
+press_depth = 0.0
+outline_style = 1
+outline_width = 0.003
+outline_depth_push = 0.002
+hover_energy = 0.5
+views = NodePath("../../../../CameraViews")
+model = NodePath("..")
+collision_from_mesh = true
+
+[node name="PalancaIzq" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom" unique_id=860246725 instance=ExtResource("101_f3y11")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.005, 0, -0.00045)
+
+[node name="SwitchSafety" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom/PalancaIzq" unique_id=37943202 node_paths=PackedStringArray("room", "views", "model")]
+script = ExtResource("105_ebtn")
+room = NodePath("../../../../EmergencyCtl")
+action = 4
+usable_in_view = &"EmergencyPanel"
+press_depth = 0.0
+outline_style = 1
+outline_width = 0.003
+outline_depth_push = 0.002
+hover_energy = 0.5
+views = NodePath("../../../../CameraViews")
+model = NodePath("..")
+collision_from_mesh = true
+
+[node name="PuertaEmergency" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom" unique_id=1495150215 instance=ExtResource("102_cpm2s")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.005, 0, -0.00045)
+
+[node name="DoorFocus" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom/PuertaEmergency" unique_id=797937489 node_paths=PackedStringArray("views", "model")]
+script = ExtResource("32_meshint")
+views = NodePath("../../../../CameraViews")
+view_name = &"Emergency"
+model = NodePath("..")
+collision_from_mesh = true
+
+[node name="TableEmergency" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom" unique_id=1940475849 instance=ExtResource("103_u81y6")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.005, 0, -0.00045)
+
+[node name="ConsoleFocus" type="StaticBody3D" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom/TableEmergency" unique_id=1201604902 node_paths=PackedStringArray("views", "model")]
+script = ExtResource("106_focus")
+from_views = Array[StringName]([&"Room", &"Emergency"])
+to_views = Array[StringName]([&"Emergency", &"EmergencyPanel"])
+views = NodePath("../../../../CameraViews")
+model = NodePath("..")
+collision_from_mesh = true
+
+[node name="SpotLightEmergency" type="SpotLight3D" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom" unique_id=690143238]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 1.5286795, 0.24347214, -0.0562179)
+light_energy = 0.0
+shadow_enabled = true
+
+[node name="SpotLightEmergency2" type="SpotLight3D" parent="PixelViewport/MapAnomalyPlayerRoom/EmergencyRoom" unique_id=300365031]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 1.5286795, 0.24347214, -0.7093269)
+light_energy = 0.0
+shadow_enabled = true
 
 [node name="RoomLights" type="Node3D" parent="PixelViewport" unique_id=1609245325]
 
@@ -875,7 +1126,7 @@ transition = NodePath("../TransitionLayer/ViewTransition")
 back_button = NodePath("../HudLayer/BackButton")
 split_view = NodePath("../SplitLayer/SplitView")
 sfx = NodePath("../../Sfx")
-home_interactables = [NodePath("../Crystal"), NodePath("../MapAnomalyPlayerRoom/MapAnomalyPanelBase/PanelDesk"), NodePath("../MapAnomalyPlayerRoom/MonitorIzq/MonitorBody"), NodePath("../MapAnomalyPlayerRoom/MonitorCentral/MonitorBody"), NodePath("../MapAnomalyPlayerRoom/MonitorDer/MonitorBody")]
+home_interactables = [NodePath("../Crystal"), NodePath("../MapAnomalyPlayerRoom/MapAnomalyPanelBase/PanelDesk"), NodePath("../MapAnomalyPlayerRoom/MonitorIzq/MonitorBody"), NodePath("../MapAnomalyPlayerRoom/MonitorCentral/MonitorBody"), NodePath("../MapAnomalyPlayerRoom/MonitorDer/MonitorBody"), NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/BotonAbrirEmergency/OpenDoorButton"), NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/PuertaEmergency/DoorFocus"), NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/TableEmergency/ConsoleFocus")]
 cycle_views = Array[StringName]([&"MonitorIzq", &"MonitorCentral", &"MonitorDer"])
 nav = NodePath("../HudLayer/MonitorNav")
 
@@ -918,13 +1169,14 @@ script = ExtResource("36_cover")
 target = NodePath("../../MapAnomalyPlayerRoom/AnomalyPalancasTapa")
 sfx = NodePath("../../../Sfx")
 
-[node name="ReactorSim" type="Node" parent="PixelViewport" unique_id=1760000010 node_paths=PackedStringArray("panel")]
+[node name="ReactorSim" type="Node" parent="PixelViewport" unique_id=1760000010 node_paths=PackedStringArray("panel", "routing")]
 script = ExtResource("43_sim")
 panel = NodePath("../ControlPanel")
+routing = NodePath("../CoolantRouting")
 
 [node name="PixelTextures" type="Node" parent="PixelViewport" unique_id=1650372941 node_paths=PackedStringArray("targets")]
 script = ExtResource("33_pxtex")
-targets = [NodePath("../MapAnomalyPlayerRoom")]
+targets = [null]
 
 [node name="RoomEnvironment" type="WorldEnvironment" parent="PixelViewport" unique_id=1332672965]
 environment = SubResource("Environment_82xsv")
@@ -995,7 +1247,7 @@ panel = NodePath("../../../ControlPanel")
 layer = 4
 
 [node name="BackButton" type="Control" parent="PixelViewport/HudLayer" unique_id=736450921 node_paths=PackedStringArray("sfx")]
-material = SubResource("ShaderMaterial_ppx11")
+material = SubResource("ShaderMaterial_ywjan")
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -1029,6 +1281,19 @@ mouse_filter = 2
 script = ExtResource("59_alert")
 settings = NodePath("../../../GameSettings")
 sfx = NodePath("../../../Sfx")
+
+[node name="ClampPrompts" type="Control" parent="PixelViewport/HudLayer" unique_id=1800000009 node_paths=PackedStringArray("views", "sfx", "settings")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("64_clamps")
+views = NodePath("../../CameraViews")
+sfx = NodePath("../../../Sfx")
+settings = NodePath("../../../GameSettings")
 
 [node name="CinematicLayer" type="CanvasLayer" parent="PixelViewport" unique_id=1733004430]
 layer = 5
@@ -1099,11 +1364,8 @@ track_path = "res://assets/Musica/Singularity.mp3"
 lateral_lasers = [NodePath("../Outside/Lasers/LaserLateral1"), NodePath("../Outside/Lasers/LaserLateral2"), NodePath("../Outside/Lasers/LaserLateral3")]
 diagonal_lasers = [NodePath("../Outside/Lasers/LaserDiagonal1"), NodePath("../Outside/Lasers/LaserDiagonal2"), NodePath("../Outside/Lasers/LaserDiagonal3"), NodePath("../Outside/Lasers/LaserDiagonal4")]
 
-[node name="Crisis" type="Node" parent="PixelViewport" unique_id=1800000007 node_paths=PackedStringArray("panel", "sim", "views", "bars", "music", "driver", "shield", "lighting", "endings", "overlay", "restore", "flash", "sfx", "settings", "lasers", "hunger", "crystal", "left_monitor")]
+[node name="Crisis" type="Node" parent="PixelViewport" unique_id=1800000007 node_paths=PackedStringArray("panel", "sim", "views", "bars", "music", "driver", "shield", "lighting", "endings", "overlay", "restore", "flash", "sfx", "settings", "lasers", "hunger", "routing", "crystal", "left_monitor")]
 script = ExtResource("60_crisis")
-hunger = NodePath("../Hunger")
-crystal = NodePath("../Crystal")
-left_monitor = NodePath("../MapAnomalyPlayerRoom/MonitorIzq")
 panel = NodePath("../ControlPanel")
 sim = NodePath("../ReactorSim")
 views = NodePath("../CameraViews")
@@ -1119,9 +1381,35 @@ flash = NodePath("../FlashLayer/Flash")
 sfx = NodePath("../../Sfx")
 settings = NodePath("../../GameSettings")
 lasers = [NodePath("../Outside/Lasers/LaserLateral1"), NodePath("../Outside/Lasers/LaserLateral2"), NodePath("../Outside/Lasers/LaserLateral3"), NodePath("../Outside/Lasers/LaserDiagonal1"), NodePath("../Outside/Lasers/LaserDiagonal2"), NodePath("../Outside/Lasers/LaserDiagonal3"), NodePath("../Outside/Lasers/LaserDiagonal4")]
+hunger = NodePath("../Hunger")
+routing = NodePath("../CoolantRouting")
+crystal = NodePath("../Crystal")
+left_monitor = NodePath("../MapAnomalyPlayerRoom/MonitorIzq")
 meltdown_track = "res://assets/Musica/KineticEnergy.mp3"
 
-[node name="Hunger" type="Node" parent="PixelViewport" unique_id=1800000008 node_paths=PackedStringArray("black_hole", "views", "shield", "lighting", "outside", "fans", "lasers", "monitors", "outside_lights", "flash", "sfx", "settings")]
+[node name="EmergencyCtl" type="Node" parent="PixelViewport" unique_id=158810539 node_paths=PackedStringArray("views", "sfx", "sim", "crisis", "door", "lights", "console_parts", "monitor_parts", "panel_parts", "open_button", "key_slot", "key_lights", "switches", "switch_lights", "cover")]
+script = ExtResource("104_eroom")
+views = NodePath("../CameraViews")
+sfx = NodePath("../../Sfx")
+sim = NodePath("../ReactorSim")
+crisis = NodePath("../Crisis")
+door = NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/PuertaEmergency")
+lights = [NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/SpotLightEmergency"), NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/SpotLightEmergency2")]
+console_parts = [NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/TableEmergency"), NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/MonitorUp"), NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/MonitorIzq"), NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/MonitorDer"), NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/PalancaIzq"), NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/PalancaDer"), NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/BotonCriogenico"), NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/LucesLlaves")]
+monitor_parts = [NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/MonitorUp"), NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/MonitorIzq"), NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/MonitorDer")]
+panel_parts = [NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/PalancaIzq"), NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/PalancaDer"), NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/BotonCriogenico"), NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/CristalDesplegableBotonCriogenico"), NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/LucesLlaves"), NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/LlaveModelo")]
+open_button = NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/BotonAbrirEmergency")
+key_slot = NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/LlaveModelo")
+key_lights = NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/LucesLlaves")
+switches = [NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/PalancaIzq"), NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/PalancaDer")]
+switch_lights = [NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/LuzIzq"), NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/LuzDer")]
+cover = NodePath("../MapAnomalyPlayerRoom/EmergencyRoom/CristalDesplegableBotonCriogenico")
+
+[node name="CoolantRouting" type="Node" parent="PixelViewport" unique_id=1932900235 node_paths=PackedStringArray("sfx")]
+script = ExtResource("67_route")
+sfx = NodePath("../../Sfx")
+
+[node name="Hunger" type="Node" parent="PixelViewport" unique_id=1800000008 node_paths=PackedStringArray("black_hole", "views", "shield", "lighting", "outside", "fans", "lasers", "monitors", "prompts", "outside_lights", "flash", "sfx", "settings")]
 script = ExtResource("61_hunger")
 black_hole = NodePath("../BlackHole")
 views = NodePath("../CameraViews")
@@ -1131,6 +1419,7 @@ outside = NodePath("../Outside/OutsidePower")
 fans = NodePath("../Outside/Fans/FanSpinner")
 lasers = [NodePath("../Outside/Lasers/LaserLateral1"), NodePath("../Outside/Lasers/LaserLateral2"), NodePath("../Outside/Lasers/LaserLateral3"), NodePath("../Outside/Lasers/LaserDiagonal1"), NodePath("../Outside/Lasers/LaserDiagonal2"), NodePath("../Outside/Lasers/LaserDiagonal3"), NodePath("../Outside/Lasers/LaserDiagonal4")]
 monitors = [NodePath("../MapAnomalyPlayerRoom/MonitorIzq/MonitorBody"), NodePath("../MapAnomalyPlayerRoom/MonitorCentral/MonitorBody"), NodePath("../MapAnomalyPlayerRoom/MonitorDer/MonitorBody")]
+prompts = NodePath("../HudLayer/ClampPrompts")
 outside_lights = NodePath("../Outside/OutsideLights")
 flash = NodePath("../FlashLayer/Flash")
 sfx = NodePath("../../Sfx")
@@ -1152,7 +1441,7 @@ settings = NodePath("../../../GameSettings")
 
 [node name="PauseLayer" type="CanvasLayer" parent="PixelViewport" unique_id=1844290417]
 process_mode = 3
-layer = 8
+layer = 20
 
 [node name="PauseMenu" type="Control" parent="PixelViewport/PauseLayer" unique_id=402918377 node_paths=PackedStringArray("sfx", "fade")]
 visible = false
@@ -1252,6 +1541,7 @@ target = NodePath("../PixelViewport/BlackHole")
 
 [connection signal="room_revealed" from="GameIntro" to="GameMusic" method="start_background"]
 [connection signal="room_revealed" from="GameIntro" to="PixelViewport/PauseLayer/PauseMenu" method="enable"]
+[connection signal="started" from="GameIntro" to="PixelViewport/PauseLayer/PauseMenu" method="enable"]
 [connection signal="direct_start" from="PixelViewport/StaticBody3D" to="GameIntro" method="start"]
 [connection signal="view_cleared" from="PixelViewport/StaticBody3D" to="Music" method="start"]
 [connection signal="view_cleared" from="PixelViewport/StaticBody3D" to="PixelViewport/MenuLayer/MainMenu" method="appear"]

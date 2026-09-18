@@ -145,6 +145,24 @@ func _draw_boot() -> void:
 func _draw_live() -> void:
 	pass
 
+# --- Pantallas que se tocan --------------------------------------------------------
+#
+# info_monitor.gd convierte el clic sobre la malla de la pantalla en un punto
+# en pixeles de ESTA pantalla y lo manda aca. Solo llegan mientras la camara
+# esta en la vista enfocada del monitor.
+
+## Clic en la pantalla, en pixeles (0,0 arriba a la izquierda).
+func on_screen_click(_pos: Vector2) -> void:
+	pass
+
+## El puntero se movio por la pantalla. Vector2(-1, -1) = se fue.
+func on_screen_hover(_pos: Vector2) -> void:
+	pass
+
+## Hay algo clicable bajo el puntero (para el cursor de mano).
+func wants_pointer() -> bool:
+	return false
+
 # --- Ayudas de dibujo ------------------------------------------------------------
 
 func text(t: String, pos: Vector2i, color: Color, scale: int = 1) -> void:

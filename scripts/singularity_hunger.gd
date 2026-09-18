@@ -10,7 +10,16 @@ extends Node
 #   devour(cosa)        se traga un laser, un aspa o una luz: primero cruje y
 #                       suelta chispas, luego se arranca y cae en espiral
 #                       hacia el horizonte, estirandose y encogiendose.
+#   tear_part(laser)    NO se lo traga entero: le arranca UNA pieza. Las de
+#                       arriba salen en cualquier orden y el cuerpo (Inferior)
+#                       siempre al final, porque ahi vive el nucleo. Con la
+#                       primera pieza el laser deja de disparar.
+#   tear_blade(aspa)    lo mismo con un aspa suelta de los ventiladores.
 #   restore_all()       si el jugador estabiliza, todo vuelve a su sitio.
+#
+# Antes de arrancar algo, el agujero negro tira de la pieza unos segundos: si
+# hay `prompts` (clamp_prompts.gd), ese tiron se convierte en un anclaje de
+# emergencia y el jugador puede salvarla clicandola a tiempo.
 #
 # Lo que se traga es una COPIA de las mallas; el original solo se oculta, asi
 # restaurar es volver a mostrarlo.
@@ -27,6 +36,8 @@ const WAVE_SHADER = preload("res://shaders/shockwave.gdshader")
 @export var lasers: Array[Node] = []
 ## Monitores (info_monitor.gd).
 @export var monitors: Array[Node] = []
+## clamp_prompts.gd: los anclajes de emergencia (opcional).
+@export var prompts: Node
 ## Padre de las luces del exterior.
 @export var outside_lights: Node3D
 @export var flash: ColorRect
@@ -41,6 +52,10 @@ const WAVE_SHADER = preload("res://shaders/shockwave.gdshader")
 var _devoured: Array = []
 ## Copias en vuelo (se liberan al llegar o al restaurar).
 var _flying: Array[Node3D] = []
+## Piezas de las que esta tirando ahora mismo (todavia se pueden salvar).
+var _pending: Array = []
+## Sube con cada restore_all(): los tirones en curso se dan por cancelados.
+var _generation: int = 0
 
 # --- Onda expansiva ------------------------------------------------------------------
 
@@ -81,7 +96,7 @@ func shockwave(strength: float = 1.0) -> void:
 		shield.flash(0.4 * strength)
 	# Cada cosa recibe el golpe cuando el frente la alcanza.
 	for l in lasers:
-		if _is_devoured(l):
+		if not alive(l):
 			continue
 		_at_radius(center, (l as Node3D).global_position, func() -> void:
 			l.pulse(1.2 * strength)
@@ -171,15 +186,41 @@ func _is_devoured(node: Node) -> bool:
 ## Siguiente laser sin tragar, en el orden de `order` (indices de `lasers`).
 func next_laser(order: Array) -> Node:
 	for i in order:
-		if i < lasers.size() and not _is_devoured(lasers[i]):
+		if i < lasers.size() and alive(lasers[i]):
 			return lasers[i]
 	return null
+
+## Sigue en pie: ni tragado entero ni sin cuerpo.
+func alive(l: Node) -> bool:
+	return l != null and not _is_devoured(l) and not bool(l.get("dead"))
+
+## Sigue disparando (no le falta ninguna pieza).
+func operational_lasers() -> int:
+	var n := 0
+	for l in lasers:
+		if alive(l) and l.operational():
+			n += 1
+	return n
+
+## Laser al que le toca perder una pieza. `spread` reparte el dano entre
+## todos (empieza por los mas enteros); si no, remata a los mas rotos.
+func next_torn_laser(spread: bool) -> Node:
+	var left: Array = lasers.filter(func(l: Node) -> bool:
+		return alive(l) and _next_part(l) != null)
+	if left.is_empty():
+		return null
+	left.sort_custom(func(a: Node, b: Node) -> bool:
+		return a.torn < b.torn if spread else a.torn > b.torn)
+	# Entre los que empatan, uno al azar (si no, siempre cae el mismo).
+	var best: int = left[0].torn
+	var tied: Array = left.filter(func(l: Node) -> bool: return l.torn == best)
+	return tied.pick_random()
 
 func next_blade() -> Node3D:
 	if fans == null:
 		return null
-	for mi in fans.blade_meshes():
-		if not _is_devoured(mi):
+	for mi: Node3D in fans.blade_meshes():
+		if not _is_devoured(mi) and not (mi in _pending):
 			return mi
 	return null
 
@@ -197,7 +238,7 @@ func next_lights(count: int) -> Array:
 	return out
 
 func devour_laser(l: Node, fall_time: float = 2.2) -> void:
-	if l == null or _is_devoured(l):
+	if not alive(l):
 		return
 	var beam: float = l.beam_intensity
 	_devoured.append({"node": l, "restore": func() -> void: l.restored(beam)})
@@ -216,6 +257,120 @@ func devour_laser(l: Node, fall_time: float = 2.2) -> void:
 	copy.add_child(glow)
 	l.swallowed()
 	_fall(copy, fall_time, 2.5)
+
+# --- Desarmar (una pieza por vez) ----------------------------------------------------
+
+## El agujero negro tira de una pieza de `l` durante `window` segundos y se la
+## arranca, salvo que el jugador la reenganche (anclaje de emergencia).
+## Devuelve true si se la llevo.
+func tear_part(l: Node, window: float = 0.0, fall_time: float = 2.0) -> bool:
+	if not alive(l):
+		return false
+	var part: Node3D = _next_part(l)
+	if part == null:
+		return false
+	var gen := _generation
+	_pending.append(part)
+	var prompt: Node = prompts.open(part, window, l.light_color) if _can_prompt(window) else null
+	# El temblor corre en paralelo al aviso: dura exactamente lo que la ventana.
+	_shudder(part, window, func() -> void:
+		l.pulse(1.1)
+		l.spark(0.7), gen)
+	var saved: bool = await _wait_prompt(prompt, window)
+	_pending.erase(part)
+	if gen != _generation or not is_instance_valid(part) or not is_instance_valid(l):
+		return false
+	if saved:
+		l.clamp_part(part)
+		_burst((part as Node3D).global_position, 14, 1.1, Color(0.65, 0.95, 1.0))
+		return false
+
+	# Se la lleva. El cuerpo es la ultima: ahi el laser queda muerto.
+	var body: bool = part == l.body_part()
+	_devoured.append({"node": part, "restore": func() -> void: l.restore_part(part)})
+	var copy := _copy_meshes(part)
+	l.tear_off(part)
+	var glow := OmniLight3D.new()
+	glow.light_color = l.light_color.lerp(Color(1.0, 0.25, 0.25), 0.55)
+	glow.light_energy = 1.6
+	glow.omni_range = 1.1
+	glow.light_cull_mask = 2
+	copy.add_child(glow)
+	_burst((part as Node3D).global_position, 26 if body else 16, 1.6, Color(1.0, 0.8, 0.5))
+	if views:
+		views.shake(0.012 if body else 0.007, 0.35)
+	_fall(copy, fall_time, 5.0 if not body else 2.5)
+	return true
+
+## Un aspa suelta, con la misma ventana de rescate.
+func tear_blade(mi: Node3D, window: float = 0.0, fall_time: float = 1.8) -> bool:
+	if mi == null or fans == null or _is_devoured(mi) or mi in _pending:
+		return false
+	var gen := _generation
+	_pending.append(mi)
+	var prompt: Node = prompts.open(mi, window, Color(0.7, 0.85, 1.0)) if _can_prompt(window) else null
+	_shudder(mi, window, func() -> void: fans.rattle(mi, 1.2), gen)
+	var saved: bool = await _wait_prompt(prompt, window)
+	_pending.erase(mi)
+	if gen != _generation or not is_instance_valid(mi):
+		return false
+	if saved:
+		fans.rattle(mi, 0.3)
+		_play("laser_lock", -6.0, randf_range(1.1, 1.25))
+		_burst(mi.global_position, 12, 1.0, Color(0.65, 0.95, 1.0))
+		return false
+	_devoured.append({"node": mi, "restore": func() -> void: fans.set_blade_active(mi, true)})
+	var copy := _copy_meshes(mi)
+	fans.set_blade_active(mi, false)
+	_burst(mi.global_position, 18, 1.8, Color(1.0, 0.8, 0.5))
+	_fall(copy, fall_time, 6.0)
+	return true
+
+## Siguiente pieza de `l`: una suelta al azar y, cuando no quedan, el cuerpo.
+func _next_part(l: Node) -> Node3D:
+	var loose: Array = []
+	for pt: Node3D in l.loose_parts():
+		if _free_part(pt):
+			loose.append(pt)
+	if not loose.is_empty():
+		return loose.pick_random()
+	var body: Node3D = l.body_part()
+	return body if _free_part(body) else null
+
+func _free_part(pt: Node3D) -> bool:
+	return pt != null and pt.visible and not _is_devoured(pt) and not (pt in _pending)
+
+func _can_prompt(window: float) -> bool:
+	return prompts != null and window > 0.0
+
+## Espera a que el jugador resuelva el aviso (o a que se acabe la ventana).
+func _wait_prompt(prompt: Node, window: float) -> bool:
+	if prompt == null:
+		await get_tree().create_timer(window, false).timeout
+		return false
+	return await prompt.resolved
+
+## Tiron: la pieza se sacude cada vez mas fuerte mientras se puede salvar.
+## Corre en paralelo al aviso y no limpia el temblor al terminar: de eso se
+## encargan tear_off() (se la llevaron) o clamp_part() (la salvaron).
+func _shudder(node: Node3D, seconds: float, sparks: Callable, gen: int) -> void:
+	_play("metal_groan", -4.0, randf_range(0.85, 1.15))
+	var holder: Node = node.get_parent()
+	var can_shake: bool = holder != null and holder.has_method("shake_part")
+	var unit: float = holder.local_unit() if can_shake else 1.0
+	var steps := maxi(int(seconds / 0.05), 1)
+	for i in steps:
+		if not is_instance_valid(node) or gen != _generation or not (node in _pending):
+			return
+		var k := float(i) / steps
+		if can_shake:
+			var off := Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1))
+			holder.shake_part(node, off * 0.013 * (0.25 + k) / unit)
+		if i % 5 == 0:
+			sparks.call()
+		await get_tree().create_timer(0.05, false).timeout
+
+# --- Tragar entero -------------------------------------------------------------------
 
 func devour_blade(mi: Node3D, fall_time: float = 1.8) -> void:
 	if mi == null or _is_devoured(mi):
@@ -299,6 +454,14 @@ func devour_prop(node: Node3D, fall_time: float = 2.4, rip_sound: String = "") -
 	_fall(copy, fall_time, 1.5)
 
 func restore_all() -> void:
+	# Los tirones en curso se dan por cancelados y los avisos se cierran.
+	_generation += 1
+	_pending.clear()
+	if prompts:
+		prompts.clear()
+	for l in lasers:
+		if l and l.has_method("clear_shakes"):
+			l.clear_shakes()
 	for n in _flying:
 		if is_instance_valid(n):
 			n.queue_free()
@@ -408,6 +571,61 @@ func _fall(node: Node3D, time: float, spin: float) -> void:
 		_flying.erase(node)
 		if is_instance_valid(node):
 			node.queue_free())
+
+## Desintegracion (apagado de emergencia): el horizonte NO se encoge ni se
+## apaga ni se agranda. Revienta en fragmentos que salen disparados en todas
+## direcciones y se quedan flotando, porque esto pasa en el vacio y no hay
+## nada que los frene ni que los haga caer. Se llama varias veces, cada vez
+## mas fuerte, hasta que la nube tapa lo que quedaba.
+func disintegrate(strength: float = 1.0, color: Color = Color(1.0, 0.6, 0.25)) -> void:
+	if black_hole == null:
+		return
+	var p := CPUParticles3D.new()
+	p.one_shot = true
+	p.explosiveness = 0.88
+	p.amount = maxi(int(140.0 * strength), 12)
+	p.lifetime = 4.5 + 3.5 * strength
+	p.local_coords = false
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = maxf(black_hole.sphere_radius * 1.15, 0.02)
+	# Sin direccion: salen radiales desde la esfera de emision.
+	p.direction = Vector3.ZERO
+	p.spread = 180.0
+	p.initial_velocity_min = 0.2 * strength
+	p.initial_velocity_max = 1.5 * strength
+	p.gravity = Vector3.ZERO
+	p.damping_min = 0.1
+	p.damping_max = 0.45
+	p.angular_velocity_min = -220.0
+	p.angular_velocity_max = 220.0
+	p.scale_amount_min = 0.7
+	p.scale_amount_max = 2.4
+	var curve := Curve.new()
+	curve.add_point(Vector2(0.0, 0.15))
+	curve.add_point(Vector2(0.2, 1.0))
+	curve.add_point(Vector2(1.0, 0.0))
+	p.scale_amount_curve = curve
+	p.color_ramp = _spark_ramp(color)
+	p.mesh = _shard_quad()
+	p.layers = 1 | 2
+	p.top_level = true
+	add_child(p)
+	p.global_position = black_hole.global_position
+	p.emitting = true
+	get_tree().create_timer(p.lifetime + 1.0, false).timeout.connect(p.queue_free)
+	_play("shockwave", linear_to_db(clampf(0.35 + strength * 0.35, 0.2, 1.0)),
+		randf_range(0.55, 0.75))
+
+var _shard: QuadMesh
+
+## Los fragmentos son mas grandes que las chispas: se tienen que leer como
+## pedazos del horizonte, no como polvo.
+func _shard_quad() -> QuadMesh:
+	if _shard == null:
+		_shard = QuadMesh.new()
+		_shard.size = Vector2(0.06, 0.06)
+		_shard.material = _spark_quad().material
+	return _shard
 
 func _trail() -> CPUParticles3D:
 	var p := CPUParticles3D.new()

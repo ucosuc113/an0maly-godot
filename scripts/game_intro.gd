@@ -9,6 +9,10 @@ extends Node
 # La sala y sus luces estan ocultas hasta ese momento: durante el CRT y el menu
 # todo es oscuridad. Con REDUCE FLASHING no hay destello ni parpadeo.
 
+## Se emite al entrar al juego (antes del golpe de luces). Desde aqui ya se
+## puede pausar: la entrada tambien es partida, no un menu.
+signal started
+
 ## Se emite cuando las luces quedaron fijas y la sala es jugable.
 signal room_revealed
 
@@ -74,12 +78,13 @@ func start() -> void:
 	if _started:
 		return
 	_started = true
+	started.emit()
 	# Al hacer clic: la pantalla ya esta a oscuras (el menu se fue), el cambio
 	# de exposicion y de tone mapping no se ve.
 	if environment and environment.environment:
 		environment.environment.tonemap_exposure = _room_exposure
 		environment.environment.tonemap_mode = _tonemap
-	await get_tree().create_timer(dark_hold).timeout
+	await get_tree().create_timer(dark_hold, false).timeout
 
 	var gentle: bool = settings != null and bool(settings.get_value("reduce_flashing"))
 	room.visible = true
@@ -97,7 +102,7 @@ func start() -> void:
 		_set_lights(0.0)
 		var t := create_tween()
 		t.tween_method(_set_lights, 0.0, 1.0, 0.6).set_trans(Tween.TRANS_SINE)
-		await get_tree().create_timer(0.35).timeout
+		await get_tree().create_timer(0.35, false).timeout
 		_start_hum()
 		await t.finished
 	else:
@@ -128,7 +133,7 @@ func _bang() -> void:
 	]
 	for s in steps:
 		_set_lights(s[1])
-		await get_tree().create_timer(s[0]).timeout
+		await get_tree().create_timer(s[0], false).timeout
 	_set_lights(1.0)
 	_start_hum()
 
