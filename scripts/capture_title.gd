@@ -36,7 +36,9 @@ func _process(_delta: float) -> bool:
 	# configuracion va aqui: si no, pixel_display la pisa al inicializarse.
 	if _frames == 2:
 		_vp = _scene.get_node("PixelViewport")
-		_mat = _scene.get_node("Display").material
+		var display := _scene.get_node("Display")
+		_mat = display.quantize_material if display.quantize_material else display.material
+		display.set_quantize_in_viewport(false)
 		_vp.transparent_bg = true
 		_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 		_vp.size = OUT_SIZE

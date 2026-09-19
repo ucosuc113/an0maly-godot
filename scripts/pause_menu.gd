@@ -20,10 +20,12 @@ extends Control
 const PixelFont = preload("res://scripts/pixel_font.gd")
 const REVEAL_SHADER = preload("res://shaders/dither_reveal.gdshader")
 const CrtMonitor = preload("res://scripts/crt_monitor.gd")
+const CrtTerminal = preload("res://scripts/crt_terminal.gd")
+const SETTINGS_SIZE := Vector2i(212, 150)
 
 const PAUSE_ACTION := &"pause"
 
-enum Page { MAIN, CONFIRM }
+enum Page { MAIN, CONFIRM, SETTINGS }
 
 ## Nodo con sfx.gd (opcional).
 @export var sfx: Node
@@ -49,6 +51,19 @@ enum Page { MAIN, CONFIRM }
 @onready var _to_menu: Control = $MainMenuButton
 @onready var _confirm: Control = $ConfirmButton
 @onready var _cancel: Control = $CancelButton
+
+var _settings_btn: Control
+var _back_btn: Control
+var _settings: Node
+var _tab: int = 0
+var _hover_id: String = ""
+var _hits: Dictionary = {}
+var _saved: float = 0.0
+## 0..1: cuanto crecio el marco hacia SETTINGS_SIZE.
+var _grow: float = 0.0:
+	set(value):
+		_grow = value
+		_layout()
 
 ## true en juego (la sala ya esta a la vista).
 var enabled: bool = false
@@ -107,6 +122,11 @@ func _ready() -> void:
 	move_child(_header, 0)
 	move_child(_body, 1)
 
+	_settings = get_node_or_null(^"../../../GameSettings")
+	_settings_btn = _make_button(_to_menu, "SETTINGS")
+	_back_btn = _make_button(_cancel, "BACK")
+	_settings_btn.pressed.connect(_set_page.bind(Page.SETTINGS))
+	_back_btn.pressed.connect(_set_page.bind(Page.MAIN))
 	_resume.pressed.connect(close)
 	_to_menu.pressed.connect(_set_page.bind(Page.CONFIRM))
 	_confirm.pressed.connect(_return_to_menu)
@@ -147,18 +167,21 @@ func _process(delta: float) -> void:
 		_on_pause_key()
 	if visible:
 		_time += delta
+		_saved = maxf(_saved - delta, 0.0)
 		_body.queue_redraw()  # indicador que parpadea
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and pause_on_focus_loss:
 		open()
+	elif what == NOTIFICATION_WM_GO_BACK_REQUEST and enabled:
+		_on_pause_key()
 
 func _on_pause_key() -> void:
 	if not _open:
 		open()
 	elif _busy:
 		return
-	elif _page == Page.CONFIRM:
+	elif _page == Page.CONFIRM or _page == Page.SETTINGS:
 		_play("menu_click")
 		_set_page(Page.MAIN)
 	else:
@@ -173,6 +196,7 @@ func open() -> void:
 	_busy = true
 	get_tree().paused = true
 	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+	_grow = 0.0
 	_show_page(Page.MAIN)
 	_time = 0.0
 	visible = true
@@ -240,14 +264,25 @@ func _set_page(page: Page) -> void:
 		return
 	_busy = true
 	_set_interactive(false)
+	_set_hover("")
+	var resize := page == Page.SETTINGS or _page == Page.SETTINGS
 	var t := create_tween().set_parallel()
 	for b in _page_buttons():
 		t.tween_property(b, "reveal", 0.0, 0.14).set_trans(Tween.TRANS_SINE)
 	t.tween_property(_body, "reveal", 0.0, 0.14)
+	if resize:
+		t.tween_property(_header, "reveal", 0.0, 0.14)
 	await t.finished
 
+	if resize:
+		var g := create_tween()
+		g.tween_property(self, "_grow", 1.0 if page == Page.SETTINGS else 0.0, 0.32) \
+			.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_IN_OUT)
+		await g.finished
 	_show_page(page)
 	t = create_tween().set_parallel()
+	if resize:
+		t.tween_property(_header, "reveal", 1.0, 0.35).set_trans(Tween.TRANS_SINE)
 	t.tween_property(_body, "reveal", 1.0, 0.3).set_trans(Tween.TRANS_SINE)
 	var shown := _page_buttons()
 	for i in shown.size():
@@ -266,12 +301,23 @@ func _show_page(page: Page) -> void:
 	_layout()
 
 func _buttons() -> Array[Control]:
-	return [_resume, _to_menu, _confirm, _cancel]
+	return [_resume, _settings_btn, _to_menu, _confirm, _cancel, _back_btn]
 
 func _page_buttons() -> Array[Control]:
-	if _page == Page.MAIN:
-		return [_resume, _to_menu]
+	match _page:
+		Page.MAIN:
+			return [_resume, _settings_btn, _to_menu]
+		Page.SETTINGS:
+			return [_back_btn]
 	return [_confirm, _cancel]
+
+func _make_button(template: Control, label: String) -> Control:
+	var b := template.duplicate() as Control
+	b.material = null
+	b.set("primary", false)
+	b.set("text", label)
+	add_child(b)
+	return b
 
 func _set_interactive(value: bool) -> void:
 	for b in _buttons():
@@ -285,24 +331,37 @@ func _play(sound: String) -> void:
 # Coordenadas relativas a la esquina del marco (panel_size):
 #   10  PAUSED (x2)          29  subtitulo
 #   41  separador            47  aviso (CONFIRM)
-#   52/68 botones MAIN       60/76 botones CONFIRM
+#   47/61/75 botones MAIN    60/76 botones CONFIRM    (SETTINGS: ver abajo)
 #   h-16 separador           h-11 pie
 
+func _psize() -> Vector2i:
+	var w := int(round(lerpf(panel_size.x, SETTINGS_SIZE.x, _grow) / 2.0)) * 2
+	var h := int(round(lerpf(panel_size.y, SETTINGS_SIZE.y, _grow) / 2.0)) * 2
+	return Vector2i(w, h)
+
 func _panel_origin() -> Vector2i:
-	return (Vector2i(size) - panel_size) / 2
+	return (Vector2i(size) - _psize()) / 2
 
 func _layout() -> void:
 	if _resume == null:
 		return
 	var o := _panel_origin()
-	var ys := [52, 68] if _page == Page.MAIN else [60, 76]
+	var ps := _psize()
+	var ys := [60, 76]
+	if _page == Page.MAIN:
+		ys = [47, 61, 75]
+	elif _page == Page.SETTINGS:
+		ys = [113]
 	var shown := _page_buttons()
 	for i in shown.size():
 		var b: Control = shown[i]
 		var bs := Vector2i(b.get_combined_minimum_size())
 		b.size = Vector2(bs)
-		b.position = Vector2(o.x + (panel_size.x - bs.x) / 2, o.y + ys[i])
+		b.position = Vector2(o.x + (ps.x - bs.x) / 2, o.y + ys[i])
 	queue_redraw()
+	if _header:
+		_header.queue_redraw()
+		_body.queue_redraw()
 
 func _draw() -> void:
 	if _backdrop <= 0.0:
@@ -321,9 +380,10 @@ func _draw() -> void:
 	var open_w := smoothstep(0.0, 0.45, _frame)
 	var open_h := smoothstep(0.45, 1.0, _frame)
 	var o := _panel_origin()
-	var w: int = maxi(2, int(round(panel_size.x * open_w / 2.0)) * 2)
-	var h: int = maxi(1, int(round(panel_size.y * open_h / 2.0)) * 2)
-	var box := Rect2i(o.x + (panel_size.x - w) / 2, o.y + (panel_size.y - h) / 2, w, h)
+	var ps := _psize()
+	var w: int = maxi(2, int(round(ps.x * open_w / 2.0)) * 2)
+	var h: int = maxi(1, int(round(ps.y * open_h / 2.0)) * 2)
+	var box := Rect2i(o.x + (ps.x - w) / 2, o.y + (ps.y - h) / 2, w, h)
 
 	var fill := panel_color
 	fill.a *= open_h
@@ -361,25 +421,30 @@ func _text_centered(canvas: CanvasItem, text: String, y: int, color: Color,
 		scale: int = 1, tracking: int = 0) -> void:
 	var o := _panel_origin()
 	var tw := PixelFont.text_width(text, scale, tracking)
-	PixelFont.draw(canvas, text, Vector2(o.x + (panel_size.x - tw) / 2, y), color, scale, tracking)
+	PixelFont.draw(canvas, text, Vector2(o.x + (_psize().x - tw) / 2, y), color, scale, tracking)
 
 ## Titulo y separadores: fijos en las dos paginas.
 func _draw_header(canvas: CanvasItem) -> void:
 	var o := _panel_origin()
-	_text_centered(canvas, "PAUSED", o.y + 10, title_color, 2, 2)
+	var ps := _psize()
+	var title := "SETTINGS" if _page == Page.SETTINGS else "PAUSED"
+	_text_centered(canvas, title, o.y + 10, title_color, 2, 2)
 	var sep := frame_color
-	_dotted(canvas, o.y + 41, o.x + 12, o.x + panel_size.x - 12, sep)
-	_dotted(canvas, o.y + panel_size.y - 16, o.x + 12, o.x + panel_size.x - 12, sep)
+	_dotted(canvas, o.y + 41, o.x + 12, o.x + ps.x - 12, sep)
+	_dotted(canvas, o.y + ps.y - 16, o.x + 12, o.x + ps.x - 12, sep)
 
 ## Lo que cambia con la pagina: subtitulo, aviso y pie.
 func _draw_body(canvas: CanvasItem) -> void:
 	var o := _panel_origin()
+	var ps := _psize()
 	var y := o.y + 29
-	if _page == Page.MAIN:
+	if _page == Page.SETTINGS:
+		_draw_settings(canvas, o, ps)
+	elif _page == Page.MAIN:
 		# Indicador que parpadea (como el REC de una camara, en pausa).
 		var text := "SIMULATION HALTED"
 		var tw := PixelFont.text_width(text)
-		var x := o.x + (panel_size.x - tw - 6) / 2
+		var x := o.x + (ps.x - tw - 6) / 2
 		if fmod(_time, 1.0) < 0.6:
 			canvas.draw_rect(Rect2(x, y + 2, 3, 3), accent_color)
 		PixelFont.draw(canvas, text, Vector2(x + 6, y), accent_color.darkened(0.15))
@@ -387,10 +452,162 @@ func _draw_body(canvas: CanvasItem) -> void:
 		_text_centered(canvas, "RETURN TO MAIN MENU?", y, accent_color)
 		_text_centered(canvas, "PROGRESS WILL BE LOST", o.y + 47, dim_color)
 
-	var fy := o.y + panel_size.y - 11
+	var fy := o.y + ps.y - 11
 	var secs := int(_session_time)
 	var clock := "T+%02d:%02d" % [secs / 60, secs % 60]
 	PixelFont.draw(canvas, clock, Vector2(o.x + 10, fy), dim_color)
 	var hint := "[ESC] RESUME" if _page == Page.MAIN else "[ESC] BACK"
+	var hint_color := dim_color
+	if _page == Page.SETTINGS and _saved > 0.0:
+		hint = "SAVED"
+		hint_color = accent_color
 	var hw := PixelFont.text_width(hint)
-	PixelFont.draw(canvas, hint, Vector2(o.x + panel_size.x - 10 - hw, fy), dim_color)
+	PixelFont.draw(canvas, hint, Vector2(o.x + ps.x - 10 - hw, fy), hint_color)
+
+# --- Pagina SETTINGS ------------------------------------------------------------
+# Mismas opciones que el CRT (CrtTerminal.SETTING_TABS), con el look de la pausa.
+#   10 SETTINGS (x2)   28 pestanas   41 separador   49.. filas (12 px)
+#   101 descripcion    113 BACK      h-16 separador h-11 pie
+
+const ROW_Y := 49
+const ROW_STEP := 12
+const SEG_W := 4
+
+func _draw_settings(canvas: CanvasItem, o: Vector2i, ps: Vector2i) -> void:
+	_hits.clear()
+	var tabs: Array = CrtTerminal.SETTING_TABS
+	var widths: Array[int] = []
+	var total := 0
+	for t in tabs:
+		widths.append(PixelFont.text_width(t.name) + 8)
+		total += widths[-1]
+	var gap: int = (ps.x - 24 - total) / maxi(tabs.size() - 1, 1)
+	var x: int = o.x + 12
+	for i in tabs.size():
+		var id := "tab_%d" % i
+		_hits[id] = Rect2i(x, o.y + 25, widths[i], 14)
+		var col := dim_color
+		if i == _tab:
+			col = title_color
+			canvas.draw_rect(Rect2(x + 2, o.y + 37, widths[i] - 4, 1), accent_color)
+		elif _hover_id == id:
+			col = title_color.lerp(dim_color, 0.35)
+		PixelFont.draw(canvas, tabs[i].name, Vector2(x + 4, o.y + 28), col)
+		x += widths[i] + gap
+
+	var rows: Array = tabs[_tab].rows
+	var right: int = o.x + ps.x - 14
+	for i in rows.size():
+		var row: Dictionary = rows[i]
+		var y: int = o.y + ROW_Y + i * ROW_STEP
+		var hot: bool = _hover_id == row.id
+		var band := Rect2i(o.x + 8, y - 3, ps.x - 16, ROW_STEP - 1)
+		_hits[row.id] = band
+		if hot:
+			canvas.draw_rect(Rect2(band), Color(1.0, 1.0, 1.0, 0.05))
+			PixelFont.draw(canvas, "▶", Vector2(o.x + 10, y), accent_color)
+		PixelFont.draw(canvas, row.label, Vector2(o.x + 18, y),
+				title_color if hot else title_color.lerp(dim_color, 0.45))
+		var value: Variant = _settings.get_value(row.id) if _settings else null
+		if row.kind == "toggle":
+			var opts: Array = row.get("opts", ["ON", "OFF"])
+			var off_x: int = right - PixelFont.text_width(opts[1])
+			var on_x: int = off_x - 8 - PixelFont.text_width(opts[0])
+			for opt in [[opts[0], on_x, bool(value)], [opts[1], off_x, not bool(value)]]:
+				var tw: int = PixelFont.text_width(opt[0])
+				if opt[2]:
+					PixelFont.draw(canvas, opt[0], Vector2(opt[1], y), accent_color)
+					canvas.draw_rect(Rect2(opt[1], y + PixelFont.GLYPH_H + 1, tw, 1), accent_color)
+				else:
+					PixelFont.draw(canvas, opt[0], Vector2(opt[1], y), dim_color.darkened(0.25))
+		else:
+			var level: int = int(value) if value != null else 0
+			var bar := _bar_rect(o, ps, i)
+			for sgm in 10:
+				var c := accent_color if sgm < level else frame_color.darkened(0.4)
+				canvas.draw_rect(Rect2(bar.position.x + sgm * (SEG_W + 1), y, SEG_W, PixelFont.GLYPH_H), c)
+			var pct := "%d%%" % (level * 10)
+			PixelFont.draw(canvas, pct, Vector2(bar.position.x - 4 - PixelFont.text_width(pct), y), dim_color)
+
+	var hot_row := _row(_hover_id)
+	if not hot_row.is_empty():
+		_text_centered(canvas, hot_row.desc, o.y + 101, dim_color)
+
+func _bar_rect(o: Vector2i, ps: Vector2i, i: int) -> Rect2i:
+	var w := 10 * (SEG_W + 1) - 1
+	return Rect2i(o.x + ps.x - 14 - w, o.y + ROW_Y + i * ROW_STEP, w, PixelFont.GLYPH_H)
+
+func _row(id: String) -> Dictionary:
+	for r in CrtTerminal.SETTING_TABS[_tab].rows:
+		if r.id == id:
+			return r
+	return {}
+
+func _hit(pos: Vector2) -> String:
+	var p := Vector2i(pos.floor())
+	for id in _hits:
+		if (_hits[id] as Rect2i).has_point(p):
+			return id
+	return ""
+
+func _set_hover(id: String, sound: bool = true) -> void:
+	if id == _hover_id:
+		return
+	_hover_id = id
+	if id != "" and sound:
+		_play("menu_hover")
+	Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND if id != "" else Input.CURSOR_ARROW)
+
+func _gui_input(event: InputEvent) -> void:
+	if _page != Page.SETTINGS or _busy:
+		return
+	if event is InputEventMouseMotion:
+		_set_hover(_hit(event.position))
+	elif event is InputEventMouseButton and event.pressed:
+		var id := _hit(event.position)
+		match event.button_index:
+			MOUSE_BUTTON_LEFT:
+				_set_hover(id, false)
+				_settings_click(id, event.position)
+			MOUSE_BUTTON_WHEEL_UP:
+				_settings_wheel(id, 1)
+			MOUSE_BUTTON_WHEEL_DOWN:
+				_settings_wheel(id, -1)
+		accept_event()
+
+func _settings_click(id: String, pos: Vector2) -> void:
+	if id.begins_with("tab_"):
+		var t := id.substr(4).to_int()
+		if t == _tab:
+			return
+		_tab = t
+		_play("menu_click")
+		_body.reveal = 0.0
+		create_tween().tween_property(_body, "reveal", 1.0, 0.2).set_trans(Tween.TRANS_SINE)
+		return
+	var row := _row(id)
+	if row.is_empty() or _settings == null:
+		return
+	if row.kind == "toggle":
+		_settings.toggle(id)
+	else:
+		var i: int = CrtTerminal.SETTING_TABS[_tab].rows.find(row)
+		var bar := _bar_rect(_panel_origin(), _psize(), i)
+		if not bar.grow(2).has_point(Vector2i(pos.floor())):
+			return
+		var value: int = clampi((int(pos.x) - bar.position.x) / (SEG_W + 1), 0, 9) + 1
+		if value == 1 and int(_settings.get_value(id)) == 1:
+			value = 0
+		_settings.set_value(id, value)
+	_play("menu_click")
+	_saved = 0.9
+
+func _settings_wheel(id: String, direction: int) -> void:
+	var row := _row(id)
+	if row.is_empty() or row.kind != "level" or _settings == null:
+		return
+	var before: int = _settings.get_value(id)
+	_settings.set_value(id, before + direction)
+	if int(_settings.get_value(id)) != before:
+		_play("menu_hover")
+		_saved = 0.9

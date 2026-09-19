@@ -262,7 +262,7 @@ func on_clicked(hit_position: Vector3) -> void:
 		"initialize", "back":
 			_play("crt_click")
 			_shut_down()
-		"changed":
+		"changed", "tab":
 			_play("crt_click", -2.0)
 
 func on_wheel(hit_position: Vector3, direction: int) -> void:

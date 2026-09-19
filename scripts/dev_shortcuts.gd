@@ -65,6 +65,12 @@ func _ready() -> void:
 	if "--dump" in OS.get_cmdline_user_args():
 		_dump.call_deferred()
 		return
+	if "--bench2" in OS.get_cmdline_user_args():
+		_bench2()
+		return
+	if "--bench" in OS.get_cmdline_user_args():
+		_bench()
+		return
 	if "--shots" in OS.get_cmdline_user_args():
 		_auto_shots()
 		return
@@ -174,7 +180,7 @@ func _auto_shots() -> void:
 	if pause_menu:
 		pause_menu.pause_on_focus_loss = false
 	# Cortafuegos absoluto por si alguna espera no alcanza.
-	get_tree().create_timer(180.0).timeout.connect(func() -> void:
+	get_tree().create_timer(240.0).timeout.connect(func() -> void:
 		print("[shots] tope de tiempo alcanzado")
 		get_tree().quit())
 
@@ -183,12 +189,27 @@ func _auto_shots() -> void:
 		var crt := get_node_or_null(^"../PixelViewport/StaticBody3D")
 		# El arranque del CRT (encendido + volcado de texto + menu) tarda.
 		await get_tree().create_timer(22.0).timeout
-		if crt and crt.has_method("open_endings"):
+		var settings_page := "--settings" in OS.get_cmdline_user_args()
+		var gs := get_node(^"../GameSettings")
+		var fps_before: bool = gs.get_value("show_fps")
+		if settings_page:
+			gs.set_value("show_fps", true)
+		if crt and settings_page:
+			crt._terminal.start_settings()
+		elif crt and crt.has_method("open_endings"):
 			crt.open_endings()
 		else:
 			print("[shots] no encontre open_endings")
 		await get_tree().create_timer(4.0).timeout
-		await _shot(dir, "endings")
+		if settings_page and crt:
+			var term = crt._terminal
+			for t in term.SETTING_TABS.size():
+				term._tab = t
+				term.hover_id = term.SETTING_TABS[t].rows[0].id
+				await get_tree().create_timer(0.3).timeout
+				await _shot(dir, "settings_%d" % t)
+		await _shot(dir, "settings" if settings_page else "endings")
+		gs.set_value("show_fps", fps_before)
 		print("[shots] listo")
 		get_tree().quit()
 		return
@@ -199,6 +220,10 @@ func _auto_shots() -> void:
 	await _until(func() -> bool: return panel != null and not views.cinematic, 20000)
 	await get_tree().create_timer(1.0).timeout
 	await _shot(dir, "01_sala")
+
+	if "--pause" in OS.get_cmdline_user_args():
+		await _pause_shots(dir)
+		return
 
 	await _skip_init()
 	await get_tree().create_timer(1.5).timeout
@@ -214,6 +239,53 @@ func _auto_shots() -> void:
 	await _until(func() -> bool: return not views.is_busy(), 8000)
 	views.go_to(views.home_view)
 	await get_tree().create_timer(1.0).timeout
+
+	# Derretimiento con la pista adelantada: --detonation tira el apagado pasado
+	# el limite, --quench purga dentro del rango (debe congelar).
+	var args := OS.get_cmdline_user_args()
+	if "--detonation" in args or "--quench" in args:
+		var det := "--detonation" in args
+		crisis._start_meltdown()
+		await get_tree().create_timer(2.0).timeout
+		print("[shots] arranque del derretimiento: %d K" % int(sim.temp))
+		music.seek_track(140.0 if det else 70.0)
+		var limit: float = crisis.shutdown_max_temp if det else crisis.purge_safe_temp
+		await _until(func() -> bool: return sim.temp > limit - 3000.0, 30000)
+		print("[shots] t=%.1f  %d K (limite %d)" % [music.track_time(), int(sim.temp), int(limit)])
+		room.open()
+		await _until(func() -> bool: return views.current == room.view_name, 25000)
+		await _until(func() -> bool: return not views.is_busy(), 8000)
+		views.go_to(&"EmergencyEnvelope")
+		await _until(func() -> bool: return views.current == &"EmergencyEnvelope", 8000)
+		await get_tree().create_timer(1.0).timeout
+		await _shot(dir, "det_00_envolvente")
+		if det:
+			await _until(func() -> bool: return sim.temp > limit + 300.0, 30000)
+			print("[shots] t=%.1f  %d K -> apagado tarde" % [music.track_time(), int(sim.temp)])
+			await _shot(dir, "det_01_envolvente_fuera")
+			room.insert_keys()
+			await get_tree().create_timer(0.6).timeout
+			room.flip_switch(0)
+			await get_tree().create_timer(0.8).timeout
+			room.flip_switch(1)
+			var n := 0
+			while crisis.state != 5 and n < 40:
+				await get_tree().create_timer(1.0).timeout
+				n += 1
+				await _shot(dir, "det_%02d" % (n + 1))
+				print("[shots] det t=%.1f estado=%d" % [music.track_time(), crisis.state])
+		else:
+			print("[shots] purgando a %d K (safe=%d)" % [int(sim.temp), int(limit)])
+			room.lift_cover()
+			await get_tree().create_timer(1.2).timeout
+			room.purge()
+			await get_tree().create_timer(1.0).timeout
+			print("[shots] tras purga: estado=%d pista=%s" % [crisis.state, music.is_track_playing()])
+			await _until(func() -> bool: return crisis.state != 0, 60000)
+			print("[shots] fin: %d K estado=%d (1 = freeze)" % [int(sim.temp), crisis.state])
+		print("[shots] listo")
+		get_tree().quit()
+		return
 
 	# Calienta el nucleo hasta la ventana en la que la purga TODAVIA alcanza
 	# (entre purge_unlock_temp y purge_safe_temp).
@@ -318,6 +390,339 @@ func _auto_shots() -> void:
 		int(sim.temp), crisis.state])
 	await get_tree().create_timer(3.0).timeout
 	await _shot(dir, "07_resultado")
+	print("[shots] listo")
+	get_tree().quit()
+
+# --- Benchmark: fps + captura por escena (-- --bench --tag=nombre) -------------------
+
+func _bench() -> void:
+	var tag := "base"
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--tag="):
+			tag = a.substr(6)
+	var dir := "user://devshots/bench_" + tag
+	DirAccess.make_dir_recursive_absolute(dir)
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	if pause_menu:
+		pause_menu.pause_on_focus_loss = false
+	get_tree().create_timer(300.0).timeout.connect(get_tree().quit)
+	await get_tree().create_timer(1.5).timeout
+	if intro:
+		intro.start()
+	await _until(func() -> bool: return panel != null and not views.cinematic, 20000)
+	await _measure(dir, "01_room")
+	Engine.time_scale = time_scale
+	for i in [1, 2]:
+		await _until(func() -> bool: return panel.button_state(i) == "ready", 20000)
+		panel.press_phase(i)
+		await _finish_phase(i)
+	Engine.time_scale = 1.0
+	await _until(func() -> bool: return panel.button_state(3) == "ready", 20000)
+	panel.press_phase(3)
+	await get_tree().create_timer(3.0).timeout
+	await _measure(dir, "02_p3_a")
+	await get_tree().create_timer(5.0).timeout
+	await _measure(dir, "03_p3_b")
+	await _finish_phase(3)
+	await _until(func() -> bool: return panel.unlocked, 20000)
+	for v: StringName in [&"Window", &"Panel", &"Room"]:
+		await _until(func() -> bool: return not views.is_busy(), 8000)
+		views.go_to(v)
+		await _until(func() -> bool: return views.current == v and not views.is_busy(), 8000)
+		await _measure(dir, "04_view_" + v)
+	crisis._start_meltdown()
+	await get_tree().create_timer(15.0).timeout
+	await _measure(dir, "05_melt_a")
+	await get_tree().create_timer(15.0).timeout
+	await _measure(dir, "06_melt_b")
+	_set_exp(_arg("--exp="), false)
+	print("[bench] listo")
+	get_tree().quit()
+
+var _shadow_backup: Dictionary = {}
+
+class _Stamp extends Node:
+	var on_tick: Callable
+	func _process(_d: float) -> void:
+		on_tick.call()
+
+var _t_early := 0
+var _t_prev := 0
+var _nodes_prev := 0
+
+func _hitch_early() -> void:
+	_t_prev = _t_early
+	_t_early = Time.get_ticks_usec()
+
+func _hitch_late() -> void:
+	var now := Time.get_ticks_usec()
+	var nodes := int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
+	var frame := (_t_early - _t_prev) / 1000.0
+	if _t_prev > 0 and frame > 25.0:
+		var comp := 0
+		for k in [RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_CANVAS, RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_MESH,
+				RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_SURFACE, RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_DRAW,
+				RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_SPECIALIZATION]:
+			comp += RenderingServer.get_rendering_info(k)
+		print("[hitch] t=%6.1f  frame %6.1f ms  scripts(este) %5.1f ms  nodos %+d  estado %d  compil %d" % [
+			music.track_time(), frame, (now - _t_early) / 1000.0, nodes - _nodes_prev, crisis.state, comp])
+	var sc := (now - _t_early) / 1000.0
+	if sc > 3.0 and "--spikes" in OS.get_cmdline_user_args():
+		print("[spike] t=%6.1f  scripts %5.1f ms  frame %d" % [music.track_time(), sc, Engine.get_process_frames()])
+	_nodes_prev = nodes
+
+func _bench2() -> void:
+	var early := _Stamp.new()
+	early.process_priority = -100000
+	early.on_tick = _hitch_early
+	var late := _Stamp.new()
+	late.process_priority = 100000
+	late.on_tick = _hitch_late
+	get_tree().root.add_child.call_deferred(early)
+	get_tree().root.add_child.call_deferred(late)
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	if pause_menu:
+		pause_menu.pause_on_focus_loss = false
+	get_tree().create_timer(400.0).timeout.connect(get_tree().quit)
+	var gs := get_node_or_null(^"../GameSettings")
+	if gs and "--fast" in OS.get_cmdline_user_args():
+		gs.set_value("high_graphics", false)
+	var vp: SubViewport = get_node(^"../PixelViewport")
+	RenderingServer.viewport_set_measure_render_time(vp.get_viewport_rid(), true)
+	var k := _arg("--scale=").to_int()
+	if k > 1:
+		var display := get_node(^"../Display")
+		display.base_size = Vector2i(320, 180) * k
+		display._update_layout()
+		print("[prof] viewport ", vp.size)
+	await get_tree().create_timer(1.5).timeout
+	if intro:
+		intro.start()
+	await _until(func() -> bool: return panel != null and not views.cinematic, 20000)
+	_set_exp(_arg("--exp="), true)
+	await _profile("room", 2.0)
+	await _skip_init()
+	await _profile("init_done", 2.0)
+	if "--count" in OS.get_cmdline_user_args():
+		_count_geometry()
+		for sv: SubViewport in get_tree().root.find_children("*", "SubViewport", true, false):
+			print("[vp] %-60s %s upd=%d 3d=%s own=%s" % [str(sv.get_path()).replace("/root/Node3D/", ""), sv.size, sv.render_target_update_mode, not sv.disable_3d, sv.own_world_3d])
+	crisis._start_meltdown()
+	await get_tree().create_timer(3.0).timeout
+	await _profile("melt_act1", 2.0)
+	music.seek_track(130.0)
+	await get_tree().create_timer(3.0).timeout
+	await _profile("melt_act3", 2.0)
+	music.seek_track(168.0)
+	await get_tree().create_timer(4.0).timeout
+	for i in 8:
+		_set_exp(_arg("--exp="), true)
+		await _profile("climax_%d" % i, 2.0)
+		if "--climaxshots" in OS.get_cmdline_user_args():
+			await _shot("user://devshots", "climax_%d" % i)
+	if gs and "--fast" in OS.get_cmdline_user_args():
+		gs.set_value("high_graphics", true)
+	_set_exp(_arg("--exp="), false)
+	print("[prof] listo")
+	get_tree().quit()
+
+func _count_geometry() -> void:
+	var vp := get_node(^"../PixelViewport")
+	var per := {}
+	for gi: GeometryInstance3D in vp.find_children("*", "GeometryInstance3D", true, false):
+		if not gi.is_visible_in_tree():
+			continue
+		var path := str(vp.get_path_to(gi)).split("/")
+		var key := "/".join(path.slice(0, mini(2, path.size() - 1)))
+		var surf := 1
+		var mi := gi as MeshInstance3D
+		if mi and mi.mesh:
+			surf = mi.mesh.get_surface_count()
+		var tris := 0
+		if mi and mi.mesh:
+			for si in mi.mesh.get_surface_count():
+				var arr := mi.mesh.surface_get_arrays(si)
+				var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX] if arr[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
+				tris += (idx.size() if idx.size() > 0 else (arr[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()) / 3
+		if not per.has(key):
+			per[key] = [0, 0, 0, 0]
+		per[key][0] += 1
+		per[key][1] += surf
+		per[key][2] += tris
+		if gi.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+			per[key][3] += 1
+	var surf_total := 0
+	var mat_total := 0
+	var by_group := {}
+	for mi: MeshInstance3D in vp.find_children("*", "MeshInstance3D", true, false):
+		if not mi.is_visible_in_tree() or mi.mesh == null:
+			continue
+		var mats := {}
+		for si in mi.mesh.get_surface_count():
+			mats[mi.get_active_material(si)] = true
+		surf_total += mi.mesh.get_surface_count()
+		mat_total += mats.size()
+		var g := str(vp.get_path_to(mi)).get_slice("/", 0) + "/" + str(vp.get_path_to(mi)).get_slice("/", 1)
+		if not by_group.has(g):
+			by_group[g] = [0, 0]
+		by_group[g][0] += mi.mesh.get_surface_count()
+		by_group[g][1] += mats.size()
+	print("[merge] superficies %d -> materiales unicos por malla %d" % [surf_total, mat_total])
+	for g in by_group:
+		if by_group[g][0] > by_group[g][1]:
+			print("[merge]   %-45s %d -> %d" % [g, by_group[g][0], by_group[g][1]])
+	var keys := per.keys()
+	keys.sort_custom(func(a, b) -> bool: return per[a][1] > per[b][1])
+	for k in keys.slice(0, 30):
+		print("[geo] %-55s inst %4d surf %4d tris %7d sombra %4d" % [k, per[k][0], per[k][1], per[k][2], per[k][3]])
+
+func _profile(label: String, secs: float) -> void:
+	var vp: SubViewport = get_node(^"../PixelViewport")
+	var rid := vp.get_viewport_rid()
+	var frames := 0
+	var worst := 0
+	var proc := 0.0
+	var phys := 0.0
+	var cpu := 0.0
+	var gpu := 0.0
+	var start := Time.get_ticks_usec()
+	var last := start
+	while Time.get_ticks_usec() - start < secs * 1000000.0:
+		await get_tree().process_frame
+		var now := Time.get_ticks_usec()
+		worst = maxi(worst, now - last)
+		last = now
+		frames += 1
+		proc += Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
+		phys += Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0
+		cpu += RenderingServer.viewport_get_measured_render_time_cpu(rid)
+		gpu += RenderingServer.viewport_get_measured_render_time_gpu(rid)
+	var n := float(maxi(frames, 1))
+	var lit := 0
+	var shadowed := 0
+	for l: Light3D in vp.find_children("*", "Light3D", true, false):
+		if l.is_visible_in_tree() and l.light_energy > 0.001:
+			lit += 1
+			if l.shadow_enabled:
+				shadowed += 1
+	print("[prof] %-10s %6.1f fps peor %5.1fms | proc %5.2f fis %5.2f | vp cpu %5.2f gpu %5.2f | draws %5d objs %5d prims %5dk | luces %d (sombra %d) nodos %d" % [
+		label, frames / ((Time.get_ticks_usec() - start) / 1000000.0), worst / 1000.0,
+		proc / n, phys / n, cpu / n, gpu / n,
+		RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME),
+		RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME),
+		RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME) / 1000,
+		lit, shadowed, Performance.get_monitor(Performance.OBJECT_NODE_COUNT)])
+
+func _arg(prefix: String) -> String:
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with(prefix):
+			return a.substr(prefix.length())
+	return ""
+
+func _set_exp(exp: String, on: bool) -> void:
+	if exp == "":
+		return
+	var root := get_node(^"../PixelViewport")
+	for l: Light3D in root.find_children("*", "Light3D", true, false):
+		var p := str(l.get_path())
+		var strip := "strip" in exp and l.name.begins_with("Strip")
+		if "allshadow" in exp or ("laser" in exp and "Lasers" in p) or strip:
+			if not _shadow_backup.has(l):
+				_shadow_backup[l] = l.shadow_enabled
+			l.shadow_enabled = false if on else _shadow_backup[l]
+	if "nobh" in exp:
+		for mi: MeshInstance3D in root.get_node(^"BlackHole").find_children("*", "MeshInstance3D", true, false):
+			mi.visible = not on
+	var pv := root as SubViewport
+	if "atlas" in exp:
+		if not _shadow_backup.has("atlas"):
+			_shadow_backup["atlas"] = pv.positional_shadow_atlas_size
+		pv.positional_shadow_atlas_size = int(exp.get_slice("atlas", 1).to_int()) if on else _shadow_backup["atlas"]
+	if "steps" in exp:
+		var bh := root.get_node(^"BlackHole")
+		if not _shadow_backup.has("steps"):
+			_shadow_backup["steps"] = bh.march_steps
+		bh.march_steps = int(exp.get_slice("steps", 1).to_int()) if on else _shadow_backup["steps"]
+	if "noshield" in exp:
+		root.get_node(^"Outside/GravityShield").visible = not on
+	if "noglow" in exp:
+		root.get_node(^"RoomEnvironment").environment.glow_enabled = not on
+	if "nolit" in exp:
+		for l: Light3D in root.find_children("*", "Light3D", true, false):
+			l.visible = not on
+	if "nolasers" in exp:
+		root.get_node(^"Outside/Lasers").visible = not on
+	if "noscreens" in exp:
+		for sv: SubViewport in root.find_children("*", "SubViewport", true, false):
+			if sv.disable_3d:
+				sv.render_target_update_mode = SubViewport.UPDATE_DISABLED if on else SubViewport.UPDATE_ALWAYS
+				for c in sv.get_children():
+					if c is CanvasItem:
+						c.visible = not on
+	if "nohud" in exp:
+		for n in ["HudLayer", "CinematicLayer", "MenuLayer"]:
+			root.get_node(NodePath(n)).visible = not on
+	if "nooutside" in exp:
+		root.get_node(^"Outside").visible = not on
+	if "oldquant" in exp:
+		get_node(^"../Display").set_quantize_in_viewport(not on)
+	if "fast" in exp:
+		var gs := get_node_or_null(^"../GameSettings")
+		if gs:
+			gs.set_value("high_graphics", not on)
+
+func _measure(dir: String, label: String) -> void:
+	_set_exp(_arg("--exp="), true)
+	await get_tree().create_timer(1.0).timeout
+	var ab := _arg("--ab=")
+	if ab != "":
+		process_mode = Node.PROCESS_MODE_ALWAYS
+		get_tree().paused = true
+		for i in 3:
+			await get_tree().process_frame
+		await _shot(dir, label + "_A")
+		_set_exp(ab, true)
+		for i in 3:
+			await get_tree().process_frame
+		await _shot(dir, label + "_B")
+		_set_exp(ab, false)
+		get_tree().paused = false
+	var frames := 0
+	var worst := 0
+	var start := Time.get_ticks_usec()
+	var last := start
+	while Time.get_ticks_usec() - start < 2000000:
+		await get_tree().process_frame
+		var now := Time.get_ticks_usec()
+		worst = maxi(worst, now - last)
+		last = now
+		frames += 1
+	var secs := (Time.get_ticks_usec() - start) / 1000000.0
+	print("[bench] %-14s %6.1f fps  peor %5.1f ms  draws %d  objs %d  prims %dk" % [label, frames / secs, worst / 1000.0,
+		RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME),
+		RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME),
+		RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME) / 1000])
+	if ab == "":
+		await _shot(dir, label)
+
+func _pause_shots(dir: String) -> void:
+	var pm := pause_menu
+	pm.open()
+	await get_tree().create_timer(1.0).timeout
+	await _shot(dir, "p0_main")
+	pm._set_page(pm.Page.SETTINGS)
+	await get_tree().create_timer(0.3).timeout
+	await _shot(dir, "p1_grow")
+	await get_tree().create_timer(1.0).timeout
+	for t in 3:
+		pm._tab = t
+		pm._set_hover(pm.CrtTerminal.SETTING_TABS[t].rows[0].id, false)
+		await get_tree().create_timer(0.4).timeout
+		await _shot(dir, "p2_tab%d" % t)
+	pm._set_hover("", false)
+	pm._set_page(pm.Page.MAIN)
+	await get_tree().create_timer(1.2).timeout
+	await _shot(dir, "p3_back")
 	print("[shots] listo")
 	get_tree().quit()
 

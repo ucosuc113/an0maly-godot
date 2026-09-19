@@ -7,7 +7,7 @@ extends Control
 # Paginas:
 #   BOOT      comandos rapidos (arranque o carga de una pagina)
 #   MENU      boton INITIALIZE SYSTEMS (primer encendido)
-#   SETTINGS  ajustes del jugador (GameSettings) y boton BACK
+#   SETTINGS  ajustes del jugador (GameSettings) en pestanas, y boton BACK
 #
 # Las zonas clicables se registran al dibujar (_hits: id -> Rect2i). El monitor
 # pasa el pixel del puntero a hover()/click()/wheel(); click() devuelve la
@@ -33,19 +33,29 @@ const COLS := 27
 const INITIALIZE_TEXT := "INITIALIZE SYSTEMS"
 const BACK_TEXT := "◀ BACK"
 
-## Filas de SETTINGS, en orden. kind: "toggle" (ON/OFF) o "level" (0..10).
-const SETTING_ROWS := [
-	{"id": "fullscreen", "label": "FULLSCREEN", "kind": "toggle"},
-	{"id": "master_volume", "label": "MASTER VOLUME", "kind": "level"},
-	{"id": "music_volume", "label": "MUSIC VOLUME", "kind": "level"},
-	{"id": "sfx_volume", "label": "SFX VOLUME", "kind": "level"},
-	{"id": "mute_unfocused", "label": "MUTE IN BACKGROUND", "kind": "toggle"},
-	{"id": "reduce_flashing", "label": "REDUCE FLASHING", "kind": "toggle"},
-	{"id": "bloom", "label": "BLOOM", "kind": "toggle"},
-	{"id": "extra_lights", "label": "EXTRA LIGHTS", "kind": "toggle"},
+## Pestanas de SETTINGS. kind: "toggle" (ON/OFF u opts) o "level" (0..10).
+const SETTING_TABS := [
+	{"name": "DISPLAY", "rows": [
+		{"id": "fullscreen", "label": "FULLSCREEN", "kind": "toggle", "desc": "WINDOWED OR FULL SCREEN"},
+		{"id": "vsync", "label": "VSYNC", "kind": "toggle", "desc": "LOCK FPS TO SCREEN RATE"},
+		{"id": "show_fps", "label": "SHOW FPS", "kind": "toggle", "desc": "FRAMES PER SECOND COUNTER"},
+		{"id": "reduce_flashing", "label": "REDUCE FLASHING", "kind": "toggle", "desc": "SOFTER ALARMS AND FLASHES"},
+	]},
+	{"name": "GRAPHICS", "rows": [
+		{"id": "high_graphics", "label": "QUALITY", "kind": "toggle", "opts": ["HIGH", "FAST"], "desc": "FAST: FEWER SHADOWS, +FPS"},
+		{"id": "bloom", "label": "BLOOM", "kind": "toggle", "desc": "GLOW AROUND BRIGHT LIGHTS"},
+		{"id": "extra_lights", "label": "EXTRA LIGHTS", "kind": "toggle", "desc": "DECORATIVE OUTSIDE LIGHTS"},
+	]},
+	{"name": "AUDIO", "rows": [
+		{"id": "master_volume", "label": "MASTER VOLUME", "kind": "level", "desc": "OVERALL VOLUME"},
+		{"id": "music_volume", "label": "MUSIC VOLUME", "kind": "level", "desc": "SOUNDTRACK VOLUME"},
+		{"id": "sfx_volume", "label": "SFX VOLUME", "kind": "level", "desc": "EFFECTS VOLUME"},
+		{"id": "mute_unfocused", "label": "MUTE IN BACKGROUND", "kind": "toggle", "desc": "SILENCE WHEN APP IS HIDDEN"},
+	]},
 ]
-const ROWS_Y := 25
-const ROW_H := 10
+const TAB_Y := 21
+const ROWS_Y := 40
+const ROW_H := 12
 const LABEL_X := 16
 const BAR_X := 122
 const SEG_W := 4
@@ -61,6 +71,7 @@ var settings: Node
 var endings: Node
 ## Pagina ENDINGS: el primer clic en RESET pide confirmacion.
 var _reset_armed: bool = false
+var _tab: int = 0
 
 var phase: Phase = Phase.BLANK
 var hover_id: String = "":
@@ -144,7 +155,7 @@ func start_settings() -> void:
 		[0.00, "L", "> MOUNT /USR/CFG", 1],
 		[0.06, "S", "OK", 2],
 		[0.05, "L", "> READ USER.CFG", 1],
-		[0.08, "S", "%d KEYS" % SETTING_ROWS.size(), 2],
+		[0.08, "S", "%d KEYS" % _setting_count(), 2],
 		[0.05, "L", "> OPEN SETTINGS", 1],
 		[0.16, "L", "", 1],
 	]
@@ -250,6 +261,14 @@ func click(px: Vector2i) -> String:
 			_reset_armed = false
 			_saved_flash = 0.9
 		return "changed"
+	if id.begins_with("tab_"):
+		var t := id.substr(4).to_int()
+		if t == _tab:
+			return ""
+		_tab = t
+		_hits.clear()
+		queue_redraw()
+		return "tab"
 	var row := _row(id)
 	if row.is_empty() or settings == null:
 		return ""
@@ -281,15 +300,25 @@ func wheel(px: Vector2i, direction: int) -> bool:
 	_saved_flash = 0.9
 	return true
 
+func _rows() -> Array:
+	return SETTING_TABS[_tab].rows
+
+func _setting_count() -> int:
+	var n := 0
+	for t in SETTING_TABS:
+		n += t.rows.size()
+	return n
+
 func _row(id: String) -> Dictionary:
-	for r in SETTING_ROWS:
+	for r in _rows():
 		if r.id == id:
 			return r
 	return {}
 
 func _row_index(id: String) -> int:
-	for i in SETTING_ROWS.size():
-		if SETTING_ROWS[i].id == id:
+	var rows := _rows()
+	for i in rows.size():
+		if rows[i].id == id:
 			return i
 	return -1
 
@@ -416,13 +445,43 @@ func _draw_settings() -> void:
 	var tag := "SAVED" if _saved_flash > 0.0 else "USER.CFG"
 	var tag_color := phosphor if _saved_flash > 0.0 else _tone(0)
 	PixelFont.draw(self, tag, Vector2(right - PixelFont.text_width(tag), MARGIN.y), tag_color)
-	_draw_dotted_line(19, MARGIN.x, right)
+	_hits.clear()
+	_draw_tabs(right)
 
-	for i in SETTING_ROWS.size():
+	var rows := _rows()
+	for i in rows.size():
 		_draw_setting_row(i, right)
 
-	_draw_dotted_line(106, MARGIN.x, right)
-	_draw_frame_button("back", BACK_TEXT, w / 2, 112)
+	var hot := _row(hover_id)
+	if not hot.is_empty():
+		var desc: String = hot.desc
+		PixelFont.draw(self, desc, Vector2(w / 2 - PixelFont.text_width(desc) / 2, 94), _tone(0))
+
+	_draw_dotted_line(107, MARGIN.x, right)
+	_draw_frame_button("back", BACK_TEXT, w / 2, 113)
+
+func _draw_tabs(right: int) -> void:
+	var widths: Array[int] = []
+	var total := 0
+	for t in SETTING_TABS:
+		widths.append(PixelFont.text_width(t.name) + 8)
+		total += widths[-1]
+	var gap: int = (right - MARGIN.x - total) / (SETTING_TABS.size() - 1)
+	var x: int = MARGIN.x
+	for i in SETTING_TABS.size():
+		var id := "tab_%d" % i
+		var r := Rect2i(x, TAB_Y, widths[i], 11)
+		_hits[id] = r.grow(1)
+		var color := _tone(0)
+		if i == _tab:
+			draw_rect(Rect2(r), phosphor)
+			color = background
+		elif hover_id == id:
+			draw_rect(Rect2(r), phosphor.darkened(0.78))
+			color = phosphor
+		PixelFont.draw(self, SETTING_TABS[i].name, Vector2(x + 4, TAB_Y + 2), color)
+		x += widths[i] + gap
+	draw_rect(Rect2(MARGIN.x, TAB_Y + 11, right - MARGIN.x, 1), phosphor)
 
 func _draw_endings() -> void:
 	var w: int = int(size.x)
@@ -483,10 +542,10 @@ func _draw_endings() -> void:
 	_draw_frame_button("reset", "CONFIRM?" if _reset_armed else "RESET", w / 2 + 40, 110)
 
 func _draw_setting_row(i: int, right: int) -> void:
-	var row: Dictionary = SETTING_ROWS[i]
+	var row: Dictionary = _rows()[i]
 	var y: int = ROWS_Y + i * ROW_H
 	var hot: bool = hover_id == row.id
-	var band := Rect2i(MARGIN.x - 3, y - 2, right - MARGIN.x + 6, ROW_H)
+	var band := Rect2i(MARGIN.x - 3, y - 3, right - MARGIN.x + 6, ROW_H - 1)
 	_hits[row.id] = band
 
 	if hot:
@@ -497,18 +556,17 @@ func _draw_setting_row(i: int, right: int) -> void:
 
 	var value: Variant = settings.get_value(row.id) if settings else null
 	if row.kind == "toggle":
-		_draw_toggle(bool(value), y, right)
+		_draw_toggle(bool(value), y, right, row.get("opts", ["ON", "OFF"]))
 	else:
 		_draw_level(int(value) if value != null else 0, i, y)
 
 ## "ON  OFF": la opcion activa va rellena (texto oscuro sobre fosforo).
-func _draw_toggle(on: bool, y: int, right: int) -> void:
-	var off_x: int = right - PixelFont.text_width("OFF") - 1
-	var on_x: int = off_x - 8 - PixelFont.text_width("ON")
-	for opt in [["ON", on_x, on], ["OFF", off_x, not on]]:
+func _draw_toggle(on: bool, y: int, right: int, opts: Array) -> void:
+	var off_x: int = right - PixelFont.text_width(opts[1]) - 1
+	var on_x: int = off_x - 8 - PixelFont.text_width(opts[0])
+	for opt in [[opts[0], on_x, on], [opts[1], off_x, not on]]:
 		var tw: int = PixelFont.text_width(opt[0])
 		if opt[2]:
-			# 1 px de aire arriba y abajo: dos filas seguidas no se tocan.
 			draw_rect(Rect2(opt[1] - 2, y - 1, tw + 4, PixelFont.GLYPH_H + 2), phosphor)
 			PixelFont.draw(self, opt[0], Vector2(opt[1], y), background)
 		else:

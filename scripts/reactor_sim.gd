@@ -35,6 +35,10 @@ const CRYO_FLOOR := 0.3
 ## viven en crisis_director.gd (overheat_temp / cryo_temp).
 const HOT := 9000.0
 const COLD := 120.0
+## Piso de temperatura en derretimiento: FLOOR + meltdown * SPAN. Con meltdown
+## yendo de 0.25 a 1.0 por la pista, va de 16.5K a 39K.
+const MELTDOWN_FLOOR := 9000.0
+const MELTDOWN_SPAN := 30000.0
 
 @export var panel: Node
 ## coolant_routing.gd (opcional): el tablero de reles del refrigerante.
@@ -161,6 +165,12 @@ func _process(delta: float) -> void:
 	var temp_goal := 22.0 + (lat_power * 18.0 + dia_power * 26.0) / cooling
 	temp_goal = maxf(temp_goal - coolant * cryo_power, CRYO_FLOOR)
 	temp_goal += meltdown * 26000.0
+	# Piso del derretimiento: la temperatura sigue al reloj de la pista y no a
+	# como quedaron las palancas. Los umbrales de la sala de emergencia
+	# (crisis_director.gd) son temperaturas, y asi caen siempre en el mismo
+	# momento del derretimiento: 16.5K al arrancar, 39K en el no retorno.
+	if meltdown > 0.0:
+		temp_goal = maxf(temp_goal, MELTDOWN_FLOOR + meltdown * MELTDOWN_SPAN)
 	# El golpe de la purga. Son las reservas ENTERAS de la instalacion cayendo
 	# sobre el nucleo: mientras caen mandan sobre todo lo demas.
 	if purged:

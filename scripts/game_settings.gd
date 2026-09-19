@@ -13,6 +13,7 @@ const LEVEL_MAX := 10
 ## Valores por defecto. Niveles de volumen: 0..LEVEL_MAX.
 const DEFAULTS := {
 	"fullscreen": false,
+	"vsync": true,
 	"master_volume": 8,
 	"music_volume": 7,
 	"sfx_volume": 8,
@@ -20,6 +21,8 @@ const DEFAULTS := {
 	"reduce_flashing": false,
 	"bloom": true,
 	"extra_lights": true,
+	"high_graphics": true,
+	"show_fps": false,
 }
 
 ## Bus de audio que controla cada ajuste de volumen. Music y SFX se crean si el
@@ -36,12 +39,21 @@ const VOLUME_BUSES := {
 ## luz oculta no cuesta nada). Pensado para equipos lentos.
 @export var extra_lights: Array[Node3D] = []
 
+const PIXEL_VIEWPORT := ^"../PixelViewport"
+
 var _values: Dictionary = DEFAULTS.duplicate()
+var _proxies: Node3D
+var _fps: CanvasLayer
 ## Master silenciado porque la ventana perdio el foco (y mute_unfocused esta ON).
 var _unfocused_muted: bool = false
 
 func _ready() -> void:
 	_ensure_buses()
+	var vp := get_node_or_null(PIXEL_VIEWPORT)
+	if vp:
+		_proxies = preload("res://scripts/render_tuning.gd").new()
+		_proxies.name = "RenderTuning"
+		vp.add_child.call_deferred(_proxies)
 	_load()
 	for id in _values:
 		_apply(id)
@@ -73,6 +85,9 @@ func _apply(id: String) -> void:
 				else DisplayServer.WINDOW_MODE_WINDOWED
 			if DisplayServer.window_get_mode() != mode:
 				DisplayServer.window_set_mode(mode)
+		"vsync":
+			DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if value
+				else DisplayServer.VSYNC_DISABLED)
 		"master_volume", "music_volume", "sfx_volume":
 			var bus := AudioServer.get_bus_index(VOLUME_BUSES[id])
 			if bus < 0:
@@ -87,6 +102,15 @@ func _apply(id: String) -> void:
 			for n in extra_lights:
 				if n:
 					n.visible = value
+		"high_graphics":
+			_apply_graphics.call_deferred(value)
+		"show_fps":
+			if value and _fps == null:
+				_fps = preload("res://scripts/fps_counter.gd").new()
+				add_child(_fps)
+			if _fps:
+				_fps.visible = value
+				_fps.set_process(value)
 		# mute_unfocused se aplica en _notification; reduce_flashing lo leen los
 		# efectos que destellan (por ahora, el apagado del CRT).
 
@@ -109,11 +133,13 @@ func _ensure_buses() -> void:
 		AudioServer.set_bus_send(idx, "Master")
 
 func _load() -> void:
+	if OS.has_feature("mobile"):
+		_values["high_graphics"] = false
 	var cfg := ConfigFile.new()
 	if cfg.load(PATH) != OK:
 		return
 	for id in DEFAULTS:
-		var v: Variant = cfg.get_value(SECTION, id, DEFAULTS[id])
+		var v: Variant = cfg.get_value(SECTION, id, _values[id])
 		# Ignora valores de tipo equivocado (archivo editado a mano o viejo).
 		if typeof(v) == typeof(DEFAULTS[id]):
 			_values[id] = v
@@ -123,3 +149,15 @@ func _save() -> void:
 	for id in _values:
 		cfg.set_value(SECTION, id, _values[id])
 	cfg.save(PATH)
+
+func _apply_graphics(high: bool) -> void:
+	var vp := get_node_or_null(PIXEL_VIEWPORT) as SubViewport
+	if vp == null:
+		return
+	if _proxies:
+		_proxies.fast = not high
+	vp.positional_shadow_atlas_size = 2048 if high else 1024
+	var bh := vp.get_node_or_null(^"BlackHole")
+	if bh:
+		bh.march_steps = 140 if high else 48
+		bh.max_octaves = 5 if high else 2

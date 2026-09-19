@@ -54,9 +54,10 @@ extends Node
 #         calla mientras dura la purga).
 #       - por encima NO alcanza: le pega un frenazo termico y lo parte ->
 #         derretimiento VIOLENTO -> final FLASH FREEZE FAILURE.
-#     Como en pleno derretimiento el nucleo esta a decenas de miles de grados,
-#     purgar ahi siempre falla. La ventana buena es antes de que ceda la
-#     contencion.
+#     En derretimiento la temperatura sigue a la pista (reactor_sim.gd), asi
+#     que el umbral cae siempre en el mismo momento (~95 s, acto II). Una
+#     purga buena en pleno derretimiento lo ahoga: se calla todo de golpe y
+#     el congelamiento llega solo (_quench_meltdown).
 #
 #   APAGADO DE EMERGENCIA (shutdown): los dos switches de la sala de
 #     emergencia, en orden. Se corta la instalacion entera —luces, exterior,
@@ -66,12 +67,12 @@ extends Node
 #     horizonte revienta en una nube de fragmentos que se queda flotando.
 #     Nunca se lo ve encogerse ni apagarse: desaparece tapado por sus restos.
 #
-#   CORE DETONATION: el mismo apagado de emergencia, pero tirado TARDE. Pasado
-#     `shutdown_max_temp` los laterales ya no alcanzan a desarmar el nucleo:
-#     el corte lo enciende. _ignite() adelanta la pista al tramo del climax,
-#     asi que la coreografia entera (cortes al compas, escudo que estalla,
-#     horizonte que se traga la sala, implosion y estallido) sigue cuadrando
-#     aunque el jugador haya apretado el gatillo antes de tiempo.
+#   CORE DETONATION: el mismo apagado de emergencia, pero tirado TARDE (pasado
+#     `shutdown_max_temp`, ~142 s del derretimiento). Empieza igual que el
+#     bueno, pero el nucleo se come el disparo, los laterales revientan por
+#     realimentacion y el intento de destruirlo lo ENCIENDE: estalla hacia
+#     afuera en vez de tragarse la sala (_detonation). La pista salta a
+#     DET_START, asi que todo cae al compas sin importar cuando se tiro.
 #
 # La pista de derretimiento va a ~90 BPM (compas de 2.667 s): los golpes de
 # camara y de energia van a ese pulso.
@@ -84,6 +85,9 @@ const NO_RETURN := 175.0
 const CLIMAX_T := 178.5
 const FINAL_HIT := 199.5
 const CUT_LEAD := 0.23
+## CORE DETONATION: la pista salta aca. Los 8 s hasta NO_RETURN son el intento
+## de apagado que sale mal.
+const DET_START := NO_RETURN - 8.0
 ## Limites de los actos (segundos de la pista).
 const ACT_II := 58.0
 const ACT_III := 128.0
@@ -189,7 +193,9 @@ const DISC_TILT := Vector3(35.0, 0.0, 10.0)
 ## Desde aqui se puede apretar el boton azul.
 @export var purge_unlock_temp: float = 4000.0
 ## Hasta aqui el refrigerante alcanza. Por encima, el golpe no basta.
-@export var purge_safe_temp: float = 9000.0
+## En derretimiento la temperatura sigue a la pista (reactor_sim.gd, 16.5K al
+## arrancar + ~129 K/s): 28K cae a ~95 s, a mitad del acto II.
+@export var purge_safe_temp: float = 28000.0
 ## Cuanto tarda el liquido en llegar al fondo.
 @export var purge_time: float = 30.0
 @export_group("Apagado de emergencia")
@@ -201,7 +207,11 @@ const DISC_TILT := Vector3(35.0, 0.0, 10.0)
 ## Va por temperatura, no por reloj: asi el jugador lo ve venir en la barra
 ## del monitor de arriba de la sala de emergencia, igual que el resto de los
 ## finales.
-@export var shutdown_max_temp: float = 18000.0
+##
+## 34K cae a ~142 s del derretimiento (acto III): casi todo el derretimiento
+## se puede apagar, y queda un tramo corto y visible "mas alla" en la barra
+## (la escala del monitor llega a 40K) que es donde vive CORE DETONATION.
+@export var shutdown_max_temp: float = 34000.0
 ## Cuantos de los primeros `lasers` son laterales (los que cortan).
 @export var lateral_count: int = 3
 ## Naranja de corte: los laterales dejan de contener y pasan a desintegrar.
@@ -265,6 +275,8 @@ func purge() -> void:
 	if enough:
 		# Alcanza: el nucleo se va al fondo y el congelamiento salta solo en
 		# _watch(), que mientras tanto se queda callado.
+		if state == State.MELTDOWN:
+			_quench_meltdown()
 		return
 	# No alcanza: el frenazo termico parte la contencion.
 	await get_tree().create_timer(purge_time * 0.55, false).timeout
@@ -272,6 +284,34 @@ func purge() -> void:
 		_turn_violent()
 	elif state == State.IDLE:
 		_start_meltdown(true)
+
+## La purga alcanzo con el derretimiento en curso: las reservas lo ahogan.
+## No hay carteles (la purga pasa en silencio); lo que se nota es que TODO se
+## calla de golpe. Vuelve a la vigilancia, y ahi el congelamiento salta solo
+## cuando el nucleo llega al fondo.
+func _quench_meltdown() -> void:
+	state = State.IDLE
+	_act_i = 0
+	_heat_t = 0.0
+	_cooldown = 0.0
+	_freeze_t = 0.0
+	music.stop_track(1.2)
+	_stop_siren(0.8)
+	lighting.alarm(false)
+	sim.meltdown_eta = -1.0
+	overlay.set_compact(false)
+	overlay.clear()
+	_showing = false
+	if routing:
+		routing.stop()
+	if hunger:
+		if hunger.prompts:
+			hunger.prompts.clear()
+		if hunger.outside:
+			hunger.outside.emergency(false)
+	for l in lasers:
+		l.overload(0.0)
+	create_tween().tween_property(sim, "meltdown", 0.0, 6.0).set_trans(Tween.TRANS_SINE)
 
 ## Lo que ya estaba derritiendose se pone peor.
 func _turn_violent() -> void:
@@ -613,23 +653,6 @@ func _burn_every(t: float) -> float:
 	var every := 13.0 if t < ACT_II else (8.0 if t < ACT_III else 5.0)
 	return every * 0.5 if _violent else every
 
-## Enciende a mano lo que queda de la singularidad: la pista salta al tramo
-## del climax y el final pasa a ser CORE DETONATION, no el pasivo del reloj.
-##
-## Por ahora no lo llama nadie: es la salida que va a dar la consola de
-## apagado de emergencia cuando este modelada.
-func _ignite() -> void:
-	_ending = &"detonation"
-	overlay.flash_banner("IGNITION SEQUENCE", 3.0)
-	_play("shield_ignite", 3.0, 0.6)
-	views.shake(0.022, 1.0)
-	shield.flash(1.4)
-	for l in lasers:
-		l.pulse(2.0)
-	if hunger:
-		hunger.shockwave(2.0)
-	music.seek_track(NO_RETURN - 4.0)
-
 ## Lo que muestra el aviso durante el derretimiento. En la vista de la consola
 ## manda la consola: ahi el jugador necesita los numeros, no el reloj.
 func _meltdown_overlay(t: float, act: int, missing: String) -> void:
@@ -742,7 +765,6 @@ func _stabilize() -> void:
 
 func _climax() -> void:
 	state = State.CLIMAX
-	var detonation := _ending == &"detonation"
 	var bh: Node3D = driver.black_hole
 	views.cinematic = true
 	overlay.set_compact(false)
@@ -758,9 +780,8 @@ func _climax() -> void:
 			var m: Node = hunger.monitors[i]
 			if m.get("screen"):
 				get_tree().create_timer(0.12 * i, false).timeout.connect(m.screen.fail)
-	bars.show_bars("CORE DETONATION" if detonation else "CONTAINMENT FAILURE")
-	bars.set_caption("MANUAL IGNITION" if detonation else "POINT OF NO RETURN",
-		Color(1.0, 0.25, 0.2))
+	bars.show_bars("CONTAINMENT FAILURE")
+	bars.set_caption("POINT OF NO RETURN", Color(1.0, 0.25, 0.2))
 	# El agujero negro "inhala": se encoge y todo se apaga un instante.
 	driver.alive = false
 	var inhale := create_tween().set_parallel()
@@ -843,7 +864,7 @@ func _climax() -> void:
 	endings.unlock(_ending)
 	await get_tree().create_timer(1.0, false).timeout
 	state = State.ENDING
-	restore.play("CORE DETONATION" if detonation else "EVENT HORIZON BREACH")
+	restore.play("EVENT HORIZON BREACH")
 
 ## Lo que el agujero negro destroza mientras crece.
 func _climax_hunger() -> void:
@@ -885,16 +906,23 @@ func _hunger_event(ev: Array) -> void:
 				hunger.devour_blade(blade, 1.5)
 				blade = hunger.next_blade()
 
-func _explosion() -> void:
+## `violent` = la de CORE DETONATION: mas larga, mas fuerte, y pasa por rojo
+## antes de irse a negro.
+func _explosion(violent: bool = false) -> void:
 	var calm: bool = settings != null and bool(settings.get_value("reduce_flashing"))
 	_play("explosion", 4.0)
-	views.shake(0.03, 1.5)
+	if violent:
+		_play("explosion", 2.0, 0.6)
+		_play("shield_ignite", 4.0, 0.35)
+	views.shake(0.05 if violent else 0.03, 2.6 if violent else 1.5)
 	driver.black_hole.visible = false
 	flash.visible = true
 	flash.color = Color(1.0, 0.95, 0.85, 1.0 if not calm else 0.6)
 	var t := create_tween()
-	t.tween_interval(0.25)
-	t.tween_property(flash, "color", Color(1.0, 0.45, 0.2, 1.0), 0.8)
+	t.tween_interval(0.6 if violent else 0.25)
+	t.tween_property(flash, "color", Color(1.0, 0.45, 0.2, 1.0), 1.0 if violent else 0.8)
+	if violent:
+		t.tween_property(flash, "color", Color(0.55, 0.05, 0.02, 1.0), 1.0)
 	t.tween_property(flash, "color", Color(0.0, 0.0, 0.0, 1.0), 1.4)
 
 func _shake_on_beats(from: float, to: float) -> void:
@@ -962,12 +990,7 @@ func forced_shutdown() -> void:
 	# Tarde: el nucleo ya tiene demasiada masa. Los laterales se encienden
 	# igual, pero en vez de desarmarlo lo encienden.
 	if sim.temp > shutdown_max_temp:
-		overlay.flash_banner("TOO LATE // CORE IGNITION", 3.0)
-		for i in mini(lateral_count, lasers.size()):
-			lasers[i].recolor(shutdown_deep, shutdown_mid, shutdown_hot, shutdown_light)
-			lasers[i].pulse(2.0)
-		_play("plasma_ignite", 2.0, 0.6)
-		_ignite()
+		_detonation()
 		return
 	state = State.CLIMAX
 	_shutdown_sequence()
@@ -1088,6 +1111,246 @@ func _shutdown_sequence() -> void:
 	await bars.hide_bars()
 	state = State.ENDING
 	restore.play("EMERGENCY SHUTDOWN")
+
+# --- Core detonation ----------------------------------------------------------------
+
+## El apagado de emergencia tirado tarde. Arranca IGUAL que el bueno (se corta
+## la instalacion, los laterales vuelven en naranja y disparan) para que el
+## jugador crea por un momento que llego a tiempo. Pero el nucleo ya tiene
+## demasiada masa: en vez de deshilacharse se come el disparo, los laterales
+## revientan por la realimentacion y el intento de destruirlo es lo que lo
+## enciende. No se derrite: estalla hacia afuera, al compas de la pista.
+##
+## La pista salta a DET_START, asi que todo cae en tiempos fijos de "Kinetic
+## Energy" aunque el jugador haya tirado el switch en cualquier momento.
+func _detonation() -> void:
+	state = State.CLIMAX
+	_ending = &"detonation"
+	var bh: Node3D = driver.black_hole
+	var calm: bool = settings != null and bool(settings.get_value("reduce_flashing"))
+	views.cinematic = true
+	overlay.set_compact(false)
+	overlay.clear()
+	if hunger and hunger.prompts:
+		hunger.prompts.clear()
+	if routing:
+		routing.stop()
+	sim.meltdown_eta = 0.0
+	music.seek_track(DET_START)
+	_stop_siren(0.4)
+	lighting.alarm(false)
+	driver.alive = false
+	var laterals: Array = lasers.slice(0, mini(lateral_count, lasers.size()))
+
+	# 1. El intento. Lo mismo que el apagado bueno: se cae la instalacion.
+	bars.show_bars("EMERGENCY SHUTDOWN")
+	bars.set_caption("FACILITY POWER // OFFLINE", Color(1.0, 0.72, 0.2))
+	_play("breaker_off", 2.0, 0.6)
+	for l in lasers:
+		l.set_beam(0.0, 0.5)
+		l.set_light_scale(0.0, 1.0)
+		l.overload(0.0)
+	if hunger and hunger.outside:
+		hunger.outside.shut_down(2.0)
+	lighting.blackout()
+	views.shake(0.012, 0.6)
+	views.go_to(&"Window", 1.6)
+
+	await _at(DET_START + 2.0)
+	bars.set_caption("LATERAL ARRAY // MANUAL OVERRIDE", shutdown_light)
+	for l in laterals:
+		l.recolor(shutdown_deep, shutdown_mid, shutdown_hot, shutdown_light)
+		l.set_light_scale(1.5, 0.6)
+		l.charge_up(1.7, 0.8)
+		l.pulse(1.4)
+		_play("plasma_ignite", -3.0, 0.75)
+		views.shake(0.006, 0.25)
+		await _wait(0.4)
+
+	await _at(DET_START + 4.0)
+	bars.set_caption("DISINTEGRATION SEQUENCE", shutdown_light)
+	for l in laterals:
+		l.beam_stop = 0.0
+		l.fire(bh.global_position, 2.8, 0.22)
+		_play("beam_fire", 1.0, 0.65)
+		views.shake(0.014, 0.3)
+		await _wait(0.25)
+	if hunger:
+		hunger.disintegrate(0.5, shutdown_light)
+	# Por un segundo parece que funciona: el disco empieza a deshilacharse.
+	var fray := create_tween().set_parallel()
+	fray.tween_property(bh, "turbulence", 0.9, 1.6)
+	fray.tween_property(bh, "filament_contrast", 6.0, 1.6)
+	fray.tween_property(bh, "disc_color_cold", shutdown_light, 1.6)
+
+	# 2. No funciona. El nucleo se come el disparo: en vez de soltar la luz,
+	#    la curva mas; en vez de apagarse, se enciende.
+	await _at(DET_START + 5.6)
+	fray.kill()
+	var alarm_red := Color(1.0, 0.25, 0.2)
+	bars.set_caption("CORE MASS ABOVE LIMIT", alarm_red)
+	_play("metal_groan", 2.0, 0.55)
+	views.go_to(&"CineCenter", 2.5)
+	var absorb := create_tween().set_parallel()
+	absorb.tween_property(bh, "bend_strength", 2.0, 2.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	absorb.tween_property(bh, "disc_brightness", 2.4, 2.4)
+	absorb.tween_property(bh, "swirl_speed", 9.0, 2.4)
+	absorb.tween_property(bh, "turbulence", 0.3, 1.2)
+	absorb.tween_property(bh, "disc_color_hot", Color(1.0, 0.97, 0.9), 2.0)
+	for l in laterals:
+		l.pulse(2.5)
+		l.spark(1.2)
+	views.shake(0.016, 1.0)
+
+	await _at(DET_START + 6.8)
+	bars.set_caption("ENERGY ABSORBED // FEEDBACK", alarm_red)
+	for l in laterals:
+		l.overload(1.0)
+		l.charge_up(3.0, 0.8)
+		l.spark(1.6)
+	_play("shield_ignite", 2.0, 0.45)
+	views.shake(0.022, 1.2)
+
+	# 3. NO_RETURN: los laterales revientan por la realimentacion.
+	await _at(NO_RETURN)
+	bars.show_bars("CORE DETONATION")
+	bars.set_caption("LATERAL ARRAY // DESTROYED", alarm_red)
+	for i in laterals.size():
+		if hunger and hunger.alive(laterals[i]):
+			get_tree().create_timer(0.1 * i, false).timeout.connect(
+				hunger.devour_laser.bind(laterals[i], 1.2))
+	if hunger:
+		hunger.shockwave(2.2)
+		hunger.disintegrate(1.2, shutdown_hot)
+		for i in hunger.monitors.size():
+			var m: Node = hunger.monitors[i]
+			if m.get("screen"):
+				get_tree().create_timer(0.08 * i, false).timeout.connect(m.screen.fail)
+	_micro_flash(0.55, calm)
+	_play("explosion", -2.0, 1.3)
+	views.shake(0.034, 1.4)
+	shield.flash(2.0)
+	# Y despues, el vacio: todo se hunde un instante antes del golpe.
+	var inhale := create_tween().set_parallel()
+	inhale.tween_property(bh, "sphere_radius", bh.sphere_radius * 0.55, 3.0).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
+	inhale.tween_property(bh, "disc_radius", bh.disc_radius * 0.6, 3.0).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
+	inhale.tween_property(bh, "disc_brightness", 0.35, 3.0)
+	for l in lasers:
+		l.set_beam(0.0, 1.0)
+	await _at(NO_RETURN + 1.2)
+	bars.set_caption("", alarm_red)
+	_dolly = views.dolly(Vector3(0.0, 0.0, -0.3), 2.2)
+
+	# 4. CLIMAX_T: la ignicion. El agujero negro revienta hacia afuera.
+	await _cut(&"CineCenter", CLIMAX_T)
+	inhale.kill()
+	bars.set_caption("CORE IGNITION", alarm_red)
+	shield.shatter()
+	_climax_hunger()
+	_micro_flash(0.9, calm)
+	_play("explosion", 3.0, 0.7)
+	_play("glass_shatter", 3.0)
+	_play("shield_ignite", 4.0, 0.4)
+	views.shake(0.04, 1.6)
+	if hunger:
+		hunger.shockwave(2.8)
+		hunger.disintegrate(2.2, Color(1.0, 0.95, 0.8))
+		hunger.disintegrate(1.6, shutdown_mid)
+	for l in lasers:
+		l.overload(1.0)
+	bh.disc_color_cold = Color(1.0, 0.32, 0.05)
+	bh.disc_color_hot = Color(1.0, 0.98, 0.92)
+	var burst := create_tween().set_parallel()
+	var burst_t := FINAL_HIT - CLIMAX_T - 4.0
+	burst.tween_property(bh, "sphere_radius", 0.3, burst_t).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	burst.tween_property(bh, "disc_radius", 3.5, burst_t * 0.6).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+	burst.tween_property(bh, "disc_brightness", 3.0, 1.0)
+	burst.tween_property(bh, "disc_opacity", 1.1, 1.0)
+	burst.tween_property(bh, "disc_thickness_ratio", 0.12, 3.0)
+	burst.tween_property(bh, "turbulence", 1.0, 2.0)
+	burst.tween_property(bh, "noise_detail", 12.0, 3.0)
+	burst.tween_property(bh, "filament_contrast", 7.0, 2.0)
+	burst.tween_property(bh, "ring_contrast", 1.0, 2.0)
+	burst.tween_property(bh, "doppler_strength", 1.0, 2.0)
+	burst.tween_property(bh, "swirl_speed", 14.0, 6.0)
+	burst.tween_property(bh, "bend_strength", 2.6, burst_t)
+	burst.tween_property(bh, "disc_tilt_degrees", bh.disc_tilt_degrees + DISC_TILT * 0.5, 5.0).set_trans(Tween.TRANS_SINE)
+	_detonation_beats(CLIMAX_T, FINAL_HIT, calm)
+
+	# Cortes cada medio compas en vez de cada compas: la mitad del tiempo en
+	# cada plano que el derretimiento normal.
+	var shots := [&"CineWide", &"Window", &"CineLow", &"Room", &"CineCenter", &"CineWide",
+		&"CineLow", &"Window", &"Room", &"CineCenter", &"Room"]
+	var captions := {
+		0: "GRAVITATIONAL RUNAWAY",
+		3: "HORIZON UNBOUND",
+		6: "IT IS NOT COLLAPSING",
+		8: "IT IS IGNITING",
+	}
+	for i in shots.size():
+		await _cut(shots[i], CLIMAX_T + BAR * 0.5 * (i + 2))
+		if captions.has(i):
+			bars.set_caption(captions[i], alarm_red)
+
+	# 5. La llamarada llega a la sala. Mas grande y mas rapido que el
+	#    derretimiento: ahi el horizonte se TRAGA la sala, aca la QUEMA.
+	burst.kill()
+	var left := maxf(FINAL_HIT - 0.5 - _now(), 0.5)
+	var flare := create_tween().set_parallel()
+	flare.tween_property(bh, "disc_radius", 45.0, left).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
+	flare.tween_property(bh, "sphere_radius", 1.2, left).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
+	flare.tween_property(bh, "disc_inner_ratio", 1.2, left)
+	flare.tween_property(bh, "disc_falloff", 0.25, left)
+	flare.tween_property(bh, "disc_brightness", 4.0, left)
+	flare.tween_property(bh, "swirl_speed", 20.0, left)
+
+	# 6. Sin implosion: el ultimo golpe es luz. Se funde a blanco ANTES del
+	#    golpe y el estallido lo sostiene.
+	await _at(FINAL_HIT - 0.5)
+	flash.visible = true
+	flash.color = Color(1.0, 0.97, 0.9, 0.0)
+	create_tween().tween_property(flash, "color:a", 0.75 if calm else 1.0, 0.5) \
+		.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
+	_play("implosion", 2.0, 1.4)
+	await _at(FINAL_HIT)
+	flare.kill()
+	_explosion(true)
+	await get_tree().create_timer(3.4, false).timeout
+	await bars.hide_bars()
+	endings.unlock(&"detonation")
+	await get_tree().create_timer(1.0, false).timeout
+	state = State.ENDING
+	restore.play("CORE DETONATION")
+
+## Golpes al compas del estallido: mas fuertes que los del derretimiento, y
+## en cada compas una onda, una rafaga de fragmentos y un destello.
+func _detonation_beats(from: float, to: float, calm: bool) -> void:
+	var b := int(ceil(from / BEAT))
+	while b * BEAT < to - 1.5:
+		await _at(b * BEAT)
+		if state != State.CLIMAX:
+			return
+		var k := clampf((b * BEAT - from) / (to - from), 0.0, 1.0)
+		views.shake(0.012 + 0.03 * k, 0.3)
+		shield.flash(0.4 + k)
+		if b % 4 == 0 and hunger:
+			hunger.shockwave(1.4 + 1.2 * k)
+			hunger.disintegrate(0.8 + 1.4 * k,
+				Color(1.0, 0.95, 0.8) if b % 8 == 0 else shutdown_mid)
+			_micro_flash(0.25 + 0.3 * k, calm)
+		elif b % 2 == 0 and hunger and k > 0.4:
+			hunger.disintegrate(0.5 + k, shutdown_light)
+		b += 1
+
+## Destello corto de pantalla (menos con "reduce flashing").
+func _micro_flash(amount: float, calm: bool) -> void:
+	if flash == null:
+		return
+	var a := amount * (0.3 if calm else 1.0)
+	flash.visible = true
+	flash.color = Color(1.0, 0.9, 0.75, a)
+	var t := create_tween()
+	t.tween_property(flash, "color:a", 0.0, 0.22 + 0.25 * amount)
 
 ## Espera que no depende de la musica (en el apagado ya no hay pista sonando).
 func _wait(seconds: float) -> void:

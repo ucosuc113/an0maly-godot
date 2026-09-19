@@ -25,6 +25,12 @@ extends TextureRect
 # se recorta arriba/abajo (o quedan franjas finas), en vez de cambiar de
 # resolucion y que la textura pierda filas.
 
+const QUANTIZE_SCREEN = preload("res://shaders/pixel_quantize_screen.gdshader")
+
+## El material de cuantizado original (queda aca cuando se aplica dentro del viewport).
+var quantize_material: ShaderMaterial
+var _quantize_layer: CanvasLayer
+
 var _scale: int = 1
 var _hovered: Object
 ## Objeto que se esta arrastrando (on_drag_start devolvio true) y la camara
@@ -37,6 +43,7 @@ var _drag_offset: Vector2
 func _ready() -> void:
 	texture = pixel_viewport.get_texture()
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	_setup_quantize_layer()
 	pixel_viewport.physics_object_picking = true
 
 	# Sin filtrado y sin estirado no entero: el TextureRect mide exactamente
@@ -47,6 +54,33 @@ func _ready() -> void:
 
 	get_viewport().size_changed.connect(_update_layout)
 	_update_layout()
+
+## El cuantizado es constante dentro de cada texel: se calcula a 320x180 en una
+## capa final del viewport en vez de a resolucion nativa (identico, mucho mas barato).
+func _setup_quantize_layer() -> void:
+	quantize_material = material as ShaderMaterial
+	if quantize_material == null:
+		return
+	var m := ShaderMaterial.new()
+	m.shader = QUANTIZE_SCREEN
+	for u in quantize_material.shader.get_shader_uniform_list():
+		m.set_shader_parameter(u.name, quantize_material.get_shader_parameter(u.name))
+	var rect := ColorRect.new()
+	rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rect.material = m
+	_quantize_layer = CanvasLayer.new()
+	_quantize_layer.name = "QuantizeLayer"
+	_quantize_layer.layer = 128
+	_quantize_layer.add_child(rect)
+	pixel_viewport.add_child.call_deferred(_quantize_layer)
+	set_quantize_in_viewport(true)
+
+func set_quantize_in_viewport(on: bool) -> void:
+	if _quantize_layer == null:
+		return
+	_quantize_layer.visible = on
+	material = null if on else quantize_material
 
 func _update_layout() -> void:
 	var win: Vector2i = Vector2i(get_viewport_rect().size)

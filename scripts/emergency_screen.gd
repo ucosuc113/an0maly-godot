@@ -14,9 +14,10 @@ extends "res://scripts/monitor_screen.gd"
 
 enum Mode { COOLANT, THERMAL, ENVELOPE }
 
-## Techo de la escala termica (K). El derretimiento llega bastante mas arriba,
-## pero de ahi para adelante ya no hay decision que tomar.
-const SCALE_TOP := 30000.0
+## Techo de la escala termica (K): el derretimiento llega a ~39K en el punto de
+## no retorno (reactor_sim.gd). Los rangos de los botones terminan antes, asi
+## que a la derecha queda un tramo corto "fuera de rango" que se ve venir.
+const SCALE_TOP := 40000.0
 
 @export var mode: Mode = Mode.COOLANT
 

@@ -67,6 +67,10 @@ uniform float filament_width : hint_range(0.0, 1.0) = 0.7;
 uniform float filament_contrast : hint_range(0.5, 8.0) = 3.0;
 
 varying vec3 v_local_vertex;
+varying vec3 v_cam_local;
+#ifdef MANUAL_DEPTH
+varying mat4 v_view_to_local;
+#endif
 
 // Rodrigues: gira p alrededor de axis (unitario) un angulo ang.
 vec3 rotate_axis(vec3 p, vec3 axis, float ang) {
@@ -109,10 +113,15 @@ float fbm(vec3 p, int octaves) {
 
 void vertex() {
 	v_local_vertex = VERTEX;
+	mat4 inv_model = inverse(MODEL_MATRIX);
+	v_cam_local = (inv_model * vec4(CAMERA_POSITION_WORLD, 1.0)).xyz;
+#ifdef MANUAL_DEPTH
+	v_view_to_local = inv_model * INV_VIEW_MATRIX;
+#endif
 }
 
 void fragment() {
-	vec3 ro = (inverse(MODEL_MATRIX) * vec4(CAMERA_POSITION_WORLD, 1.0)).xyz;
+	vec3 ro = v_cam_local;
 	vec3 rd = normalize(v_local_vertex - ro);
 
 	// Entrada analitica al volumen: no gastamos pasos del march llegando hasta
@@ -147,7 +156,7 @@ void fragment() {
 #endif
 	vec4 view_pos = INV_PROJECTION_MATRIX * vec4(ndc, 1.0);
 	view_pos.xyz /= view_pos.w;
-	vec3 scene_local = (inverse(MODEL_MATRIX) * (INV_VIEW_MATRIX * vec4(view_pos.xyz, 1.0))).xyz;
+	vec3 scene_local = (v_view_to_local * vec4(view_pos.xyz, 1.0)).xyz;
 	t_scene = dot(scene_local - ro, rd);
 	if (t > t_scene) {
 		discard;

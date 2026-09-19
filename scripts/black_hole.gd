@@ -31,6 +31,11 @@ extends Node3D
 	set(value):
 		march_steps = value
 		_mark_dirty()
+## Tope de octavas (modo FAST lo baja aunque una animacion pida mas).
+var max_octaves: int = 5:
+	set(value):
+		max_octaves = value
+		_mark_dirty()
 
 ## Para cuando el agujero crece mas que la recamara: el volumen del raymarch
 ## atraviesa las paredes y la prueba de profundidad normal lo taparia entero.
@@ -269,7 +274,7 @@ func _apply_params() -> void:
 	m.set_shader_parameter("turbulence", turbulence)
 	# Relativos al tamano del disco, igual que el resto: invariantes a escala.
 	m.set_shader_parameter("noise_scale", noise_detail / maxf(disc_radius, 0.001))
-	m.set_shader_parameter("noise_octaves", noise_octaves)
+	m.set_shader_parameter("noise_octaves", mini(noise_octaves, max_octaves))
 	m.set_shader_parameter("spiral_tightness", spiral_tightness)
 	m.set_shader_parameter("swirl_phase", _swirl_phase)
 	m.set_shader_parameter("ring_contrast", ring_contrast)

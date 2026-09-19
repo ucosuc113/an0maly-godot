@@ -21,3 +21,10 @@ Thumbs.db
 
 # Temporales del editor de Godot
 *.tmp
+
+# Trailer (no es parte del juego): director, analisis de la musica, audio y render
+/build/
+/tools/
+/docs/trailer_*
+/scripts/trailer_*
+/assets/Musica/TRAILER*
