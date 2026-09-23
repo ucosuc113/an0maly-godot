@@ -31,6 +31,16 @@ const REVEAL_SHADER = preload("res://shaders/dither_reveal.gdshader")
 
 var camera: Camera3D
 
+## Capa del tapon: solo lo ve la camara principal.
+const BLOCKER_LAYER := 1 << 19
+## Filas de margen bajo la linea (la sacudida de camara no llega a destaparlo).
+const BLOCKER_MARGIN := 3
+## Tapon negro pegado a la camara principal sobre lo que tapa la franja: la GPU
+## descarta por profundidad los pixeles que igual no se iban a ver.
+var _blocker: MeshInstance3D
+## Calidad baja: la franja se redibuja un frame si y otro no.
+var half_rate: bool = false
+
 var _viewport: SubViewport
 var _pane: TextureRect
 var _overlay: Control
@@ -48,10 +58,13 @@ func _ready() -> void:
 	_viewport.disable_3d = false
 	_viewport.transparent_bg = false
 	_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	for q in 4:
+		_viewport.set_positional_shadow_atlas_quadrant_subdiv(q, Viewport.SHADOW_ATLAS_QUADRANT_SUBDIV_16)
 	add_child(_viewport)
 	camera = Camera3D.new()
 	camera.name = "PaneCamera"
 	camera.fov = fov
+	camera.cull_mask &= ~BLOCKER_LAYER
 	camera.current = true
 	_viewport.add_child(camera)
 
@@ -127,6 +140,48 @@ func close() -> void:
 	_is_open = false
 	visible = false
 	_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	if _blocker:
+		_blocker.visible = false
+
+func _process(_delta: float) -> void:
+	if _is_open:
+		_update_blocker()
+		if half_rate:
+			_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE \
+				if Engine.get_process_frames() % 2 == 0 else SubViewport.UPDATE_DISABLED
+		elif _viewport.render_target_update_mode != SubViewport.UPDATE_ALWAYS:
+			_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+
+func _update_blocker() -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null or cam == camera or cam.projection != Camera3D.PROJECTION_PERSPECTIVE:
+		return
+	if _blocker == null or _blocker.get_parent() != cam:
+		if _blocker:
+			_blocker.queue_free()
+		_blocker = MeshInstance3D.new()
+		_blocker.mesh = QuadMesh.new()
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.albedo_color = Color.BLACK
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		m.render_priority = Material.RENDER_PRIORITY_MAX
+		_blocker.material_override = m
+		_blocker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_blocker.layers = BLOCKER_LAYER
+		cam.add_child(_blocker)
+	var h := size.y
+	var d := cam.near * 1.5
+	var half := d * tan(deg_to_rad(cam.fov) * 0.5)
+	var top := (1.0 - 2.0 * (pane_top() + BLOCKER_MARGIN) / h) * half
+	var bottom := -half * 1.2
+	var width := half * size.x / h * 2.4
+	var quad := _blocker.mesh as QuadMesh
+	var want := Vector2(width, top - bottom)
+	if not quad.size.is_equal_approx(want):
+		quad.size = want
+	_blocker.position = Vector3(cam.h_offset, cam.v_offset + (top + bottom) * 0.5, -d)
+	_blocker.visible = true
 
 ## Camara y posicion (en su viewport) para un punto del PixelViewport.
 func camera_at(pos: Vector2) -> Dictionary:

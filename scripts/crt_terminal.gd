@@ -33,7 +33,8 @@ const COLS := 27
 const INITIALIZE_TEXT := "INITIALIZE SYSTEMS"
 const BACK_TEXT := "◀ BACK"
 
-## Pestanas de SETTINGS. kind: "toggle" (ON/OFF u opts) o "level" (0..10).
+## Pestanas de SETTINGS. kind: "toggle" (ON/OFF u opts), "level" (0..10) o
+## "choice" (opts con sus values; el clic pasa a la siguiente).
 const SETTING_TABS := [
 	{"name": "DISPLAY", "rows": [
 		{"id": "fullscreen", "label": "FULLSCREEN", "kind": "toggle", "desc": "WINDOWED OR FULL SCREEN"},
@@ -42,7 +43,7 @@ const SETTING_TABS := [
 		{"id": "reduce_flashing", "label": "REDUCE FLASHING", "kind": "toggle", "desc": "SOFTER ALARMS AND FLASHES"},
 	]},
 	{"name": "GRAPHICS", "rows": [
-		{"id": "high_graphics", "label": "QUALITY", "kind": "toggle", "opts": ["HIGH", "FAST"], "desc": "FAST: FEWER SHADOWS, +FPS"},
+		{"id": "graphics", "label": "QUALITY", "kind": "choice", "opts": ["HIGH", "MED", "FAST"], "values": [2, 1, 0], "desc": "MED: NO SHADOWS  FAST: +FPS"},
 		{"id": "bloom", "label": "BLOOM", "kind": "toggle", "desc": "GLOW AROUND BRIGHT LIGHTS"},
 		{"id": "extra_lights", "label": "EXTRA LIGHTS", "kind": "toggle", "desc": "DECORATIVE OUTSIDE LIGHTS"},
 	]},
@@ -274,6 +275,8 @@ func click(px: Vector2i) -> String:
 		return ""
 	if row.kind == "toggle":
 		settings.toggle(id)
+	elif row.kind == "choice":
+		settings.set_value(id, next_choice(row, settings.get_value(id)))
 	else:
 		var bar := _bar_rect(_row_index(id))
 		if not bar.grow(2).has_point(px):
@@ -557,6 +560,8 @@ func _draw_setting_row(i: int, right: int) -> void:
 	var value: Variant = settings.get_value(row.id) if settings else null
 	if row.kind == "toggle":
 		_draw_toggle(bool(value), y, right, row.get("opts", ["ON", "OFF"]))
+	elif row.kind == "choice":
+		_draw_choice(row, value, y, right)
 	else:
 		_draw_level(int(value) if value != null else 0, i, y)
 
@@ -571,6 +576,24 @@ func _draw_toggle(on: bool, y: int, right: int, opts: Array) -> void:
 			PixelFont.draw(self, opt[0], Vector2(opt[1], y), background)
 		else:
 			PixelFont.draw(self, opt[0], Vector2(opt[1], y), _tone(0))
+
+## Valor que sigue a `value` en una fila "choice" (da la vuelta).
+static func next_choice(row: Dictionary, value: Variant) -> Variant:
+	var values: Array = row.values
+	return values[(values.find(value) + 1) % values.size()]
+
+## Opciones en fila, alineadas a la derecha; la activa va rellena.
+func _draw_choice(row: Dictionary, value: Variant, y: int, right: int) -> void:
+	var opts: Array = row.opts
+	var x: int = right
+	for i in range(opts.size() - 1, -1, -1):
+		var tw: int = PixelFont.text_width(opts[i])
+		x -= tw + (1 if i == opts.size() - 1 else 8)
+		if row.values[i] == value:
+			draw_rect(Rect2(x - 2, y - 1, tw + 4, PixelFont.GLYPH_H + 2), phosphor)
+			PixelFont.draw(self, opts[i], Vector2(x, y), background)
+		else:
+			PixelFont.draw(self, opts[i], Vector2(x, y), _tone(0))
 
 ## Barra de 10 segmentos con el porcentaje a la izquierda.
 func _draw_level(level: int, i: int, y: int) -> void:

@@ -9,6 +9,9 @@ signal changed(id: String, value: Variant)
 const PATH := "user://settings.cfg"
 const SECTION := "settings"
 const LEVEL_MAX := 10
+const GRAPHICS_FAST := 0
+const GRAPHICS_MEDIUM := 1
+const GRAPHICS_HIGH := 2
 
 ## Valores por defecto. Niveles de volumen: 0..LEVEL_MAX.
 const DEFAULTS := {
@@ -21,7 +24,7 @@ const DEFAULTS := {
 	"reduce_flashing": false,
 	"bloom": true,
 	"extra_lights": true,
-	"high_graphics": true,
+	"graphics": 2,
 	"show_fps": false,
 }
 
@@ -65,7 +68,9 @@ func set_value(id: String, value: Variant) -> void:
 	if not DEFAULTS.has(id):
 		push_warning("Ajuste desconocido: %s" % id)
 		return
-	if typeof(DEFAULTS[id]) == TYPE_INT:
+	if id == "graphics":
+		value = clampi(int(value), GRAPHICS_FAST, GRAPHICS_HIGH)
+	elif typeof(DEFAULTS[id]) == TYPE_INT:
 		value = clampi(int(value), 0, LEVEL_MAX)
 	if _values[id] == value:
 		return
@@ -102,7 +107,7 @@ func _apply(id: String) -> void:
 			for n in extra_lights:
 				if n:
 					n.visible = value
-		"high_graphics":
+		"graphics":
 			_apply_graphics.call_deferred(value)
 		"show_fps":
 			if value and _fps == null:
@@ -134,10 +139,13 @@ func _ensure_buses() -> void:
 
 func _load() -> void:
 	if OS.has_feature("mobile"):
-		_values["high_graphics"] = false
+		_values["graphics"] = GRAPHICS_MEDIUM
 	var cfg := ConfigFile.new()
 	if cfg.load(PATH) != OK:
 		return
+	# Archivos de antes de los tres niveles: HIGH / FAST pasan a ALTO / MEDIO.
+	if not cfg.has_section_key(SECTION, "graphics") and cfg.has_section_key(SECTION, "high_graphics"):
+		_values["graphics"] = GRAPHICS_HIGH if bool(cfg.get_value(SECTION, "high_graphics")) else GRAPHICS_MEDIUM
 	for id in DEFAULTS:
 		var v: Variant = cfg.get_value(SECTION, id, _values[id])
 		# Ignora valores de tipo equivocado (archivo editado a mano o viejo).
@@ -150,13 +158,22 @@ func _save() -> void:
 		cfg.set_value(SECTION, id, _values[id])
 	cfg.save(PATH)
 
-func _apply_graphics(high: bool) -> void:
+## ALTO: sombras y agujero negro completo. MEDIO: sin sombras, raymarch
+## corto. RAPIDO: MEDIO + luz Lambert sin especular (-30% de GPU, ~6% mas
+## oscuro) y pantallas 2D a 30 Hz.
+func _apply_graphics(level: int) -> void:
 	var vp := get_node_or_null(PIXEL_VIEWPORT) as SubViewport
 	if vp == null:
 		return
+	var high := level >= GRAPHICS_HIGH
 	if _proxies:
 		_proxies.fast = not high
+		_proxies.cheap_lighting = level <= GRAPHICS_FAST
+		_proxies.half_rate_screens = level <= GRAPHICS_FAST
 	vp.positional_shadow_atlas_size = 2048 if high else 1024
+	var split := vp.get_node_or_null(^"SplitLayer/SplitView")
+	if split:
+		split.half_rate = level <= GRAPHICS_FAST
 	var bh := vp.get_node_or_null(^"BlackHole")
 	if bh:
 		bh.march_steps = 140 if high else 48

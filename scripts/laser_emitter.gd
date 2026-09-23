@@ -160,6 +160,13 @@ func _ready() -> void:
 	if hole > -INF:
 		hole_offset = hole
 	_retract = (length - hole_offset + retract_margin) / _unit
+	for part in [_ring, _guides, _launcher]:
+		part.add_to_group(&"spin_shadow")
+	# render_tuning.gd funde sus superficies de solo-color (nada las busca por nombre).
+	set_meta(&"merge_surfaces", true)
+	for w in walls:
+		if w:
+			w.set_meta(&"merge_surfaces", true)
 	hide_retracted()
 
 # --- Preparacion -----------------------------------------------------------------

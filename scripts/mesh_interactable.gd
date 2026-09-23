@@ -40,6 +40,10 @@ const HULL_SHADER = preload("res://shaders/hover_outline.gdshader")
 
 var _lit_materials: Array[StandardMaterial3D] = []
 var _outlines: Array[ShaderMaterial] = []
+## [material, contorno]: el contorno solo se engancha con el mouse encima.
+var _passes: Array = []
+## Los primeros frames quedan enganchados para que el shader compile al cargar.
+var _warm: bool = false
 var _rest: Transform3D
 var _pivot: Vector3
 var _hover: float = 0.0:
@@ -68,6 +72,7 @@ func _ready() -> void:
 			m.next_pass = outline
 			mi.set_surface_override_material(s, m)
 			_lit_materials.append(m)
+			_passes.append([m, outline])
 	super._ready()
 
 	var root: Node3D = model if model else self
@@ -84,6 +89,7 @@ func _ready() -> void:
 	hover_changed.connect(_on_hover_changed)
 	clicked.connect(_on_clicked)
 	_apply_hover()
+	_warm_up.call_deferred()
 
 ## Tamano de la caja de la malla en metros.
 func _size_m(mi: MeshInstance3D) -> Vector3:
@@ -139,6 +145,12 @@ func _on_clicked(_hit_position: Vector3) -> void:
 	enabled = false  # suelta el hover y el cursor de mano
 	views.go_to(view_name)
 
+func _warm_up() -> void:
+	for i in 3:
+		await get_tree().process_frame
+	_warm = true
+	_apply_hover()
+
 func _apply_hover() -> void:
 	if not is_node_ready():
 		return
@@ -151,3 +163,5 @@ func _apply_hover() -> void:
 		m.emission_energy_multiplier = hover_energy * k
 	for m in _outlines:
 		m.set_shader_parameter("intensity", k)
+	for pair in _passes:
+		pair[0].next_pass = pair[1] if k > 0.0 or not _warm else null

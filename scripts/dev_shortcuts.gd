@@ -62,6 +62,9 @@ func _ready() -> void:
 		set_process(false)
 		return
 	_register_actions()
+	if OS.has_feature("auto_bench"):
+		_start_device_bench()
+		return
 	if "--dump" in OS.get_cmdline_user_args():
 		_dump.call_deferred()
 		return
@@ -76,6 +79,19 @@ func _ready() -> void:
 		return
 	print("[dev] F1 init  F2 meltdown  F3 +%ds  F4 velocidad normal"
 		% int(skip_seconds))
+
+## Exportacion de prueba para el celular (res://dev/device_bench.gd): arranca
+## directo en la partida y se mide sola.
+func _start_device_bench() -> void:
+	var root := get_tree().root
+	if not root.has_meta(&"bench_started"):
+		root.set_meta(&"bench_started", true)
+		root.set_meta(&"anomaly_direct_start", true)
+		get_tree().reload_current_scene.call_deferred()
+		return
+	var script: Script = load("res://dev/device_bench.gd")
+	if script:
+		root.add_child.call_deferred(script.new())
 
 func _register_actions() -> void:
 	for key in KEYS:
@@ -486,7 +502,7 @@ func _bench2() -> void:
 	get_tree().create_timer(400.0).timeout.connect(get_tree().quit)
 	var gs := get_node_or_null(^"../GameSettings")
 	if gs and "--fast" in OS.get_cmdline_user_args():
-		gs.set_value("high_graphics", false)
+		gs.set_value("graphics", 1)
 	var vp: SubViewport = get_node(^"../PixelViewport")
 	RenderingServer.viewport_set_measure_render_time(vp.get_viewport_rid(), true)
 	var k := _arg("--scale=").to_int()
@@ -521,7 +537,7 @@ func _bench2() -> void:
 		if "--climaxshots" in OS.get_cmdline_user_args():
 			await _shot("user://devshots", "climax_%d" % i)
 	if gs and "--fast" in OS.get_cmdline_user_args():
-		gs.set_value("high_graphics", true)
+		gs.set_value("graphics", 2)
 	_set_exp(_arg("--exp="), false)
 	print("[prof] listo")
 	get_tree().quit()
@@ -669,7 +685,7 @@ func _set_exp(exp: String, on: bool) -> void:
 	if "fast" in exp:
 		var gs := get_node_or_null(^"../GameSettings")
 		if gs:
-			gs.set_value("high_graphics", not on)
+			gs.set_value("graphics", 1 if on else 2)
 
 func _measure(dir: String, label: String) -> void:
 	_set_exp(_arg("--exp="), true)

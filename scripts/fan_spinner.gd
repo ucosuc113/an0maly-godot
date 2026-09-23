@@ -37,9 +37,12 @@ func _ready() -> void:
 			continue
 		for mi: MeshInstance3D in b.find_children("*", "MeshInstance3D", true, false):
 			_fans.append(_make_fan(mi, dir))
+			mi.add_to_group(&"still_shadow")
 			dir = -dir
 			_add_self_light(mi, self_light)
 	for c in chassis:
+		if c:
+			c.set_meta(&"no_split", true)
 		if c == null or chassis_light <= 0.0:
 			continue
 		for mi: MeshInstance3D in c.find_children("*", "MeshInstance3D", true, false):

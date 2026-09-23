@@ -44,6 +44,11 @@ const HOVER_SHADER = preload("res://shaders/crystal_hover.gdshader")
 var glass_material: StandardMaterial3D
 var _frame_materials: Array[StandardMaterial3D] = []
 var _hover_materials: Array[ShaderMaterial] = []
+## [material, resaltado]: sin mouse encima el resaltado no se engancha (una
+## pasada entera sobre el ventanal que no dibujaba nada).
+var _passes: Array = []
+## Los primeros frames quedan enganchados para que el shader compile al cargar.
+var _warm: bool = false
 var _rest: Transform3D
 var _pivot: Vector3
 var _hover: float = 0.0:
@@ -74,8 +79,10 @@ func _ready() -> void:
 				m.next_pass = hover
 				mi.set_surface_override_material(s, m)
 				_frame_materials.append(m)
+				_passes.append([m, hover])
 		# El resaltado va sobre el vidrio (y el marco, via next_pass arriba).
 		glass_material.next_pass = hover
+		_passes.append([glass_material, hover])
 		_hover_materials.append(hover)
 	super._ready()
 
@@ -91,6 +98,7 @@ func _ready() -> void:
 	hover_changed.connect(_on_hover_changed)
 	clicked.connect(_on_clicked)
 	_apply_hover()
+	_warm_up.call_deferred()
 
 func _make_hover_material(mi: MeshInstance3D) -> ShaderMaterial:
 	var m := ShaderMaterial.new()
@@ -137,6 +145,12 @@ func _on_clicked(_hit_position: Vector3) -> void:
 	enabled = false  # suelta el hover y el cursor de mano
 	views.go_to(view_name)
 
+func _warm_up() -> void:
+	for i in 3:
+		await get_tree().process_frame
+	_warm = true
+	_apply_hover()
+
 func _apply_hover() -> void:
 	if not is_node_ready():
 		return
@@ -151,3 +165,5 @@ func _apply_hover() -> void:
 		m.emission_energy_multiplier = hover_frame_energy * k
 	for m in _hover_materials:
 		m.set_shader_parameter("intensity", k)
+	for pair in _passes:
+		pair[0].next_pass = pair[1] if k > 0.0 or not _warm else null

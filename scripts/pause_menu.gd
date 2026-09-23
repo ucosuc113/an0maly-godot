@@ -509,7 +509,18 @@ func _draw_settings(canvas: CanvasItem, o: Vector2i, ps: Vector2i) -> void:
 		PixelFont.draw(canvas, row.label, Vector2(o.x + 18, y),
 				title_color if hot else title_color.lerp(dim_color, 0.45))
 		var value: Variant = _settings.get_value(row.id) if _settings else null
-		if row.kind == "toggle":
+		if row.kind == "choice":
+			var copts: Array = row.opts
+			var cx: int = right
+			for ci in range(copts.size() - 1, -1, -1):
+				var ctw: int = PixelFont.text_width(copts[ci])
+				cx -= ctw + (0 if ci == copts.size() - 1 else 8)
+				if row.values[ci] == value:
+					PixelFont.draw(canvas, copts[ci], Vector2(cx, y), accent_color)
+					canvas.draw_rect(Rect2(cx, y + PixelFont.GLYPH_H + 1, ctw, 1), accent_color)
+				else:
+					PixelFont.draw(canvas, copts[ci], Vector2(cx, y), dim_color.darkened(0.25))
+		elif row.kind == "toggle":
 			var opts: Array = row.get("opts", ["ON", "OFF"])
 			var off_x: int = right - PixelFont.text_width(opts[1])
 			var on_x: int = off_x - 8 - PixelFont.text_width(opts[0])
@@ -590,6 +601,8 @@ func _settings_click(id: String, pos: Vector2) -> void:
 		return
 	if row.kind == "toggle":
 		_settings.toggle(id)
+	elif row.kind == "choice":
+		_settings.set_value(id, CrtTerminal.next_choice(row, _settings.get_value(id)))
 	else:
 		var i: int = CrtTerminal.SETTING_TABS[_tab].rows.find(row)
 		var bar := _bar_rect(_panel_origin(), _psize(), i)
