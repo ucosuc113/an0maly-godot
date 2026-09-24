@@ -1534,6 +1534,7 @@ offset_bottom = 180.0
 script = ExtResource("4_1bvp3")
 pixel_viewport = NodePath("../PixelViewport")
 views = NodePath("../PixelViewport/CameraViews")
+base_size = Vector2i(1920, 1090)
 
 [node name="DebugOrbit" type="Node" parent="." unique_id=30268992 node_paths=PackedStringArray("target")]
 script = ExtResource("7_dbgorb")
