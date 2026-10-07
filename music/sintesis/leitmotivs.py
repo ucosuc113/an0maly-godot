@@ -4,21 +4,16 @@ Un motivo es una lista de (altura MIDI, duracion en semicorcheas). Las
 transformaciones son las clasicas del contrapunto; la partitura no escribe
 notas sueltas para los temas, siempre los deriva de aca.
 
-Los dos temas comparten las mismas cuatro notas: el ACORDE ANOMALIA
+Armonia: el ACORDE ANOMALIA {A, E, A#, D#} = dos tritonos entrelazados
+(A-D#, E-A#). Los dos temas usan esas cuatro notas como esqueleto.
 
-    {A, E, A#, D#}  =  dos tritonos entrelazados (A-D#, E-A#)
+    I  LA INSTALACION   A4 E5 D#5 E5 A#4 A4   +7 -1 +1 -6 -1   un compas de 7/8
+    II EL AGUJERO NEGRO E5 A#4 A4 D#4 D4      -6 -1 -6 -1      tres compases
 
-Es un conjunto simetrico: invertido o transportado un tritono da las mismas
-notas. No es mayor ni menor; no tiene tonica clara ni cadencia posible. Es
-el sonido de la instalacion y de la anomalia a la vez.
-
-    I  LA INSTALACION   A4 E5 A#5 D#6    intervalos +7 +6 +5   2-2-1-2 semicorcheas
-       sube con intervalos que se achican: una maquina que frena con precision.
-
-    II EL AGUJERO NEGRO D#5 A#4 E4 A3    intervalos -5 -6 -7   6-8-12-16 semicorcheas
-       es I al reves (retrogradacion una octava abajo): cae con intervalos que
-       crecen -una caida que acelera- mientras cada nota dura mas que la
-       anterior: el tiempo se dilata al acercarse al horizonte.
+II es la cola de I (tritono abajo + semitono) en aumentacion y secuenciada:
+la caida con la que la instalacion se corrige, repetida hasta perder el
+fondo. Revisado con mc-melody (saltos preparados, octava central) y
+mc-development (II derivado de un fragmento de I).
 """
 from dataclasses import dataclass
 
@@ -83,28 +78,53 @@ class Motif:
 
 # ------------------------------------------------------------------ temas
 
-ANOMALIA = [0, 7, 13, 18]            # A E A# D# relativo a la raiz
+ANOMALIA = [0, 7, 13, 18]            # A E A# D# relativo a la raiz (acorde)
 
-# I. La instalacion: la celula. Ritmo 2-2-1-2 = 7 semicorcheas: medio compas
-# de 7/8. Dos celulas llenan un compas; la maquina nunca cae "a tierra" en un
-# 4/4 comodo, siempre le sobra o le falta un pulso.
-INSTALACION = Motif([(n("A4") + i, d) for i, d in zip(ANOMALIA, [2, 2, 1, 2])], "I")
+# I. La instalacion. Un compas de 7/8 (14 semicorcheas), octava central A4-A5.
+#
+#     A4  E5  D#5 E5  A#4 A4        intervalos +7 -1 +1 -6 -1
+#     2   2   1   1   3   5         (4+2+3+5: el acento cae en 2+2+3)
+#
+#   a1 = A4 -> E5   la quinta: orden, estructura (salto con "rebote" despues)
+#   a2 = D#5-E5     bordado de semitono: el temblor de la maquina, el tritono
+#                   contra A metido como nota de paso
+#   a3 = E5 -> A#4 -> A4   cae un tritono y amortigua medio tono: la maquina
+#                   se corrige sola y aterriza en casa.
+#
+# Cumple mc-melody §3.1: nunca dos saltos seguidos (cada salto tiene rebote o
+# amortiguacion por grado conjunto) y los cuatro sonidos del acorde ANOMALIA
+# aparecen igual, como esqueleto.
+INSTALACION = Motif([(n("A4"), 2), (n("E5"), 2), (n("D#5"), 1), (n("E5"), 1),
+                     (n("A#4"), 3), (n("A4"), 5)], "I")
 
-# II. El agujero negro: retrogradacion de I una octava abajo, con el tiempo
-# dilatado (cada nota mas larga que la anterior). 42 semicorcheas = 3 compases.
-AGUJERO = INSTALACION.retrograde().octave(-1).rhythm([6, 8, 12, 16])
+# I? (pregunta, cambio de final): la cola sube en vez de caer y se queda en
+# A#5, el tritono de D#, sin resolver (mc-melody §2.1: final ascendente =
+# pregunta).
+INSTALACION_Q = Motif(INSTALACION.notes[:4] + [(n("A5"), 3), (n("A#5"), 5)], "I?")
+
+# a2 suelto: el temblor, para fragmentar.
+TEMBLOR = Motif(INSTALACION.notes[2:4], "a2")
+
+# II. El agujero negro: la cola de I (a3: tritono abajo + semitono) en
+# aumentacion y secuenciada una quinta abajo. Es la misma caida que usa la
+# instalacion para corregirse, pero sin fondo: cada amortiguacion es el
+# comienzo de la caida siguiente, y termina en D4, fuera del acorde ANOMALIA
+# (la gravedad la saco del sistema).
+#
+#     E5  A#4 A4  D#4 D4            intervalos -6 -1 -6 -1
+#     6   4   8   6   18            = 42 semicorcheas = tres compases
+_cola = Motif(INSTALACION.notes[3:6], "a3")               # E5 A#4 A4
+AGUJERO = Motif(_cola.notes + _cola.transpose(-7).notes[1:], "II").rhythm([6, 4, 8, 6, 18])
 AGUJERO.name = "II"
 
 
 def rotacion(k):
-    """I rotado k terceras menores (0..3): A, C, D#, F#. Las cuatro rotaciones
-    viven en la misma escala octatonica; la de un tritono (k=2) tiene las
-    mismas notas que I en otro orden."""
+    """I rotado k terceras menores (0..3): A, C, D#, F#."""
     return INSTALACION.transpose(3 * k)
 
 
 def describe():
-    for m in (INSTALACION, AGUJERO, rotacion(1), rotacion(2)):
+    for m in (INSTALACION, INSTALACION_Q, TEMBLOR, AGUJERO):
         print(f"{m.name:8s} {' '.join(name(p) for p, _ in m.notes):20s} "
               f"int {m.intervals()}  dur {[d for _, d in m.notes]}")
 

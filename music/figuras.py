@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from sintesis.leitmotivs import INSTALACION, AGUJERO, NOTE, rotacion  # noqa: E402
+from sintesis.leitmotivs import INSTALACION, INSTALACION_Q, AGUJERO, NOTE  # noqa: E402
 from sintesis import partitura as P  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -44,10 +44,9 @@ def roll(ax, motif, color, title, glide=False):
 
 def leitmotivs():
     fig, ax = plt.subplots(3, 1, figsize=(10, 9))
-    roll(ax[0], INSTALACION, "#3aa0ff", "I  LA INSTALACION  (celula de 7/16: medio compas de 7/8)")
-    esc = rotacion(0) + rotacion(1) + rotacion(2) + rotacion(3)
-    roll(ax[1], esc, "#7cc4ff", "I en sus 4 rotaciones octatonicas (ESCALADA: A, C, D#, F#)")
-    roll(ax[2], AGUJERO, "#ff5a3a", "II  EL AGUJERO NEGRO = I retrogradado, 8va abajo, tiempo dilatado",
+    roll(ax[0], INSTALACION, "#3aa0ff", "I  LA INSTALACION  (un compas de 7/8)")
+    roll(ax[1], INSTALACION_Q, "#7cc4ff", "I?  pregunta: la cola sube y queda en A#5 (se responde en el climax)")
+    roll(ax[2], AGUJERO, "#ff5a3a", "II  EL AGUJERO NEGRO = cola de I (a3) aumentada y secuenciada",
          glide=True)
     plt.tight_layout()
     plt.savefig(os.path.join(OUT, "leitmotivs.png"), dpi=80)

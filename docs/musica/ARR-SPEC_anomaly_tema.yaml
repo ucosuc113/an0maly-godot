@@ -1,0 +1,267 @@
+# ARR-SPEC v1.0 - tema principal de AN0MALY (assets/Musica/Anomaly_Tema.ogg)
+# Escrito con mc-workflow (S0-S5) y mc-melody; material y desarrollo con
+# mc-development, como exige S2a. El "backend" no es Suno sino el sintetizador
+# propio del repo (music/generar_tema.py): la partitura en codigo es la
+# compilacion de esta hoja. Los valores de energia y ancho estan medidos
+# sobre el render (RMS y relacion S/M por seccion), no supuestos.
+
+spec_version: "1.0"
+
+meta:
+  title: "AN0MALY - Tema principal"
+  style_layer: "none"            # no hay L3 de "videojuego / Portal 2"; el lenguaje se describe en fusion_note
+  style_layers: []
+  fusion_note: "Lenguaje Portal 2 (Morasky): celulas en ostinato, 7/8, armonia octatonica sin cadencias, bitcrush y final por falla"
+  key: "A minor"
+  mode: ""                       # octatonica (A A# C C# D# E F# G); no esta en el enum de MusicXML, ver exemptions
+  meter: "7/8"
+  tempo: 120                     # negra = 120; semicorchea = 0.125 s; compas de 7/8 = 1.75 s
+  target_duration: "1:00"        # 32 compases x 3.5 negras / 120 x 60 = 56 s + 4 s de reinicio y cola
+  deliverable: [full_mix, stems]
+
+intent:
+  one_thing: "Una maquina perfecta que se va curvando por algo que no puede contener"
+  reference_pair:
+    - {track: "Mike Morasky - Reconstructing Science (Portal 2)", borrow: "solo el secuenciador de onda cuadrada en ostinato que se traba (ratchets, bitcrush) como unico motor ritmico"}
+    - {track: "MenuMusic.ogg actual (Portal Reloaded)", borrow: "solo el pedal en A y la paleta espectral: casi todo entre 250 Hz y 4 kHz, sin aire arriba"}
+  listener_situation: "Menu principal en bucle, de fondo mientras se navega SETTINGS; muchas repeticiones con atencion baja: el gancho tiene que estar en los primeros 7 s y sobrevivir al bucle"
+  emotional_arc:
+    - {section: I1, mood: "arranque frio, clinico", value: 2}
+    - {section: V1, mood: "protocolo en orden, una duda", value: 5}
+    - {section: P1, mood: "presion que sube, la maquina tiembla", value: 7}
+    - {section: B1, mood: "vertigo: todo se curva y se estira", value: 4}
+    - {section: D1, mood: "colision, panico", value: 9}
+    - {section: O1, mood: "apagado; reinicio que no termina", value: 1}
+
+material:
+  motif: "Un compas de 7/8: A4 E5 D#5 E5 A#4 A4 (+7 -1 +1 -6 -1), duraciones 2-2-1-1-3-5 semicorcheas. Sube una quinta, tiembla medio tono (D#-E), cae un tritono y amortigua medio tono hasta A. Partes: a1 quinta, a2 temblor, a3 caida tritono+semitono"
+  motif_abc: "L:1/16\nA2e2^de^A3A5"
+  character: "preciso y nervioso: se corrige solo"
+  stated_in: [V1]
+  development_mode: "加工处理"     # mc-development §5.1: procesamiento (ostinato, fragmento, secuencia, aumentacion)
+
+form:
+  - id: I1
+    name: Intro
+    bars: 4
+    start_bar: 1
+    harmony: "|Im |Im |Im |Im |"
+    harmony_letters: "|Am |Am |Am |Am |"
+    melody_register: "中低"
+    melody_range: "A3-A4"
+    development: fragment
+    energy: 2
+    events: [drone_in, seq_in, pad_in]
+    note: "Proceso aditivo: el ostinato arma la celula nota por nota (A, A-E, A-E-D#, completa). Es el boceto previo en la introduccion (mc-development §1), el inverso de una fragmentacion"
+  - id: V1
+    name: Verse
+    bars: 8
+    start_bar: 5
+    harmony: "|Im |Im |bIIIm/I |Im |Im |Im |bIIIm/I |#IVm/I |"
+    harmony_letters: "|Am |Am |Cm/A |Am |Am |Am |Cm/A |D#m/A |"
+    melody_register: "中"
+    melody_range: "A4-A#5"
+    development: repeat
+    energy: 5
+    events: [lead_in, drums_in, bass_in]
+    note: "Exposicion original. I (c.5) / I? pregunta que termina subiendo en A#5 (c.7) / I (c.9) / traba (c.11): la tercera vez cambia. Un compas de aire entre frases; contesta el secuenciador"
+  - id: P1
+    name: Pre-Chorus
+    bars: 8
+    start_bar: 13
+    harmony: "|Im |Im |bIIIm |bIIIm |#IVm |#IVm |#VIm |#VIm |"
+    harmony_letters: "|Am |Am |Cm |Cm |D#m |D#m |F#m |F#m |"
+    melody_register: "中高"
+    melody_range: "A4-A#5"
+    development: "fragment+sequence"
+    energy: 7
+    events: [bleeps_in]
+    note: "El bajo sube por terceras menores. El temblor a2 se recorta y se secuencia (G5-F#5, A#5-A5, A5 repetida); se apoya en una nota distinta de cada acorde, no en transporte paralelo. Compas 20 sin melodia"
+  - id: B1
+    name: Breakdown
+    bars: 6
+    start_bar: 21
+    harmony: "|I5 |I5 |I5 |I5 |I5 |I5 |"
+    harmony_letters: "|A5 |A5 |A5 |A5 |A5 |A5 |"
+    melody_register: "中低"
+    melody_range: "C#4-E5"
+    development: "augment+sequence"
+    energy: 4
+    events: [lead_out, drums_out, bass_out, seq_out, leadII_in]
+    note: "Acorde ANOMALIA (A E A# D#): A5 es el sufijo mas cercano del conjunto cerrado; suenan tambien b9 y #11. Todo se curva un semitono hacia abajo. II es la cola de I (a3) en aumentacion y secuenciada una quinta abajo, dos veces"
+  - id: D1
+    name: Drop
+    bars: 4
+    start_bar: 27
+    harmony: "|Im |#IVm/I |Im |#IVm/I |"
+    harmony_letters: "|Am |D#m/A |Am |D#m/A |"
+    melody_register: "高"
+    melody_range: "A3-A#5"
+    development: "counterpoint+augment"
+    energy: 9
+    events: [lead_in, drums_in, bass_in, seq_in]
+    note: "Climax en el c.27 (76 %): A#5 largo responde a la pregunta del c.7 y baja a A5. Despues, I en disminucion (semicorcheas) contra II una octava abajo"
+  - id: O1
+    name: Outro
+    bars: 2
+    start_bar: 31
+    harmony: "|I5 |I5 |"
+    harmony_letters: "|A5 |A5 |"
+    melody_register: "中"
+    melody_range: "A4-E5"
+    development: contract
+    energy: 1
+    events: [drums_out, bass_out, seq_out, leadII_out]
+    note: "Freno de cinta en el c.31, silencio y reinicio: A E D# E en aumentacion; la caida y la A final no llegan (reduccion, se omite la nota de cierre)"
+
+arrangement:
+  roster:
+    - id: drone
+      instrument: "zumbido aditivo de 11 parciales sobre A1 con deriva lenta"
+      midi: {program: 95, bank: 0, channel: 1}
+      role: "和声铺底"
+      band: "低频"
+      entry: I1
+      exit: O1
+    - id: seq
+      instrument: "pulso PWM + sierra, golpe de filtro, bitcrush 8-9 bits, eco ping-pong"
+      midi: {program: 81, bank: 0, channel: 2}
+      role: "记忆点"
+      band: "中高"
+      entry: I1
+      exit: D1
+    - id: pad
+      instrument: "colchon de 7 sierras por nota con compuerta ritmica"
+      midi: {program: 90, bank: 0, channel: 3}
+      role: "和声铺底"
+      band: "中低"
+      entry: I1
+      exit: O1
+    - id: lead
+      instrument: "lead Aperture: dos pulsos estrechos desafinados, bitcrush 6-7 bits"
+      midi: {program: 80, bank: 0, channel: 4}
+      role: "旋律"
+      band: "中高"
+      entry: V1
+      exit: O1
+    - id: leadII
+      instrument: "cinco sierras desafinadas + sub seno, portamento, ladder 24 dB"
+      midi: {program: 81, bank: 0, channel: 5}
+      role: "旋律"
+      band: "中"
+      entry: B1
+      exit: D1
+    - id: bass
+      instrument: "cuadrada + sierra saturadas, ladder 24 dB, sub seno"
+      midi: {program: 38, bank: 0, channel: 6}
+      role: "低频"
+      band: "低频"
+      entry: V1
+      exit: D1
+    - id: drums
+      instrument: "bombo de seno con caida, caja de ruido crujiente, hi-hats FM, golpes metalicos FM"
+      midi: {program: 0, bank: 0, channel: 10}
+      role: "律动"
+      band: "全频"
+      entry: V1
+      exit: D1
+    - id: bleeps
+      instrument: "pitidos de seno con chirp, polimetro 5 contra 14"
+      midi: {program: 80, bank: 0, channel: 7}
+      role: "色彩"
+      band: "高"
+      entry: P1
+      exit: D1
+
+  depth_map: {lead: 前景, leadII: 前景, seq: 中景, bass: 中景, drums: 中景, pad: 背景, drone: 背景, bleeps: 背景}
+  bass_kick_relation: {mode: 交织式, detail: "PRUEBA y ESCALADA: el bajo acompana el bombo en 0 y 8 y se separa en las corcheas intermedias; COLAPSO: semicorcheas contra 4 bombos; sidechain del bombo sobre bajo y colchon"}
+  spectrum_budget:
+    - {band: "1-3 kHz", owner: lead, competitors: [seq], resolution: "交替出现"}
+    - {band: "60-120 Hz", owner: bass, competitors: [drone, drums], resolution: "让频"}
+    - {band: "250-800 Hz", owner: pad, competitors: [leadII], resolution: "错开音区"}
+
+  energy_curve: {I1: 2, V1: 5, P1: 7, B1: 4, D1: 9, O1: 1}
+  energy_curve_note: "medido en el render: I1 -20.1, V1 -15.8, P1 -15.1, B1 -16.5, D1 -13.9, O1 -18.0 dB RMS"
+
+  subtraction_events:
+    - {at: {section: P1, bar_offset: 7}, what: "la melodia calla un compas entero antes del horizonte", why: "el hueco hace que II entre en un espacio vacio"}
+    - {at: {section: B1}, what: "salen bateria, bajo y secuenciador; queda un bombo grave cada dos compases", why: "la caida de energia es el horizonte de sucesos"}
+    - {at: {section: O1, bar_offset: 0, beat: 2}, what: "freno de cinta de toda la mezcla y silencio", why: "la pieza termina por falla, no por cadencia"}
+
+  hooks:
+    vocal_hook: {where: "", shape: ""}
+    arrangement_hook:
+      what: "el ostinato de 14 pasos en 2+2+3 hecho con las alturas de I (A E D# E | A E D# E | A# A E D# E A)"
+      first_at: I1
+      recurs_at: [V1, P1, D1]
+      abc: "L:1/16\nAe^deAe^de^AAe^dea"
+
+  groove:
+    feel: straight
+    quantize_policy: {seq: 100, drums: 100, lead: 100, leadII: 0, relays: 0}
+    push_pull:
+      - {part: leadII, offset_ms: 40, note: "II va detras del pulso: la gravedad la retiene (II_LAG en partitura.py)"}
+      - {part: relays, offset_ms: 2, note: "tics de rele con dispersion aleatoria de +-2 ms (sigma)"}
+    fill_policy:
+      bars: [12, 20, 28, 30]
+      rationale: "tartamudeos (beat repeat) al cierre de las frases de PRUEBA y ESCALADA y dos en el COLAPSO; intervalos 8-8-2, no cada 4"
+
+mix_intent:
+  mood: "Frio, claustrofobico y cada vez menos estable; nunca epico"
+  sound_stage:
+    - {id: lead, pan: 0, depth: 前景}
+    - {id: leadII, pan: 0, depth: 前景}
+    - {id: seq, pan: 0, depth: 中景}
+    - {id: bass, pan: 0, depth: 中景}
+    - {id: drums, pan: 0, depth: 中景}
+    - {id: bleeps, pan: 0, depth: 背景}
+    - {id: pad, pan: 0, depth: 背景}
+  sound_stage_note: "seq alterna -30/+30 por paso; bleeps -60/+60; granos y reles al azar entre -80 y +80"
+  ducking_map:
+    - {section: V1, who_yields: pad, band: "lows/mids", to: drums}
+    - {section: D1, who_yields: bass, band: "40-120 Hz", to: drums}
+  dynamics:
+    target_DR_dB: 9
+    notes: ["B1 al menos 1.4 dB por debajo de P1 (medido: 1.4)", "O1 al menos 4 dB por debajo de D1 (medido: 4.1)"]
+  width_map: {I1: medium, V1: narrow, P1: narrow, B1: wide, D1: medium, O1: medium}
+  width_map_note: "medido como relacion S/M: 0.39 / 0.31 / 0.29 / 0.45 / 0.36 / 0.37"
+  loudness_target: "-16 dBFS RMS, picos -1 dBFS (el juego lo baja con base_volume_db)"
+
+render:
+  suno:
+    style_prompt: "7/8 electronic test-chamber score, bitcrushed square-wave ostinato, octatonic minor harmony, glitch stutters, tape-stop ending, A pedal, instrumental"
+    exclude: ["vocals", "major key", "orchestral swell"]
+    knobs: {model: "", weirdness: "", style_influence: ""}
+  sintetizador_propio: "python3 music/generar_tema.py (backend real; la partitura en codigo es esta hoja compilada)"
+
+checks:
+  self_audit:
+    - "[x] 1 intent: cuatro campos; reference_pair = 2 con borrow concretos y que no se pisan"
+    - "[x] 2 start_bar encadenados: 1+4=5, 5+8=13, 13+8=21, 21+6=27, 27+4=31"
+    - "[x] 3 compases 4/8/8/6/4/2: no todos multiplos de 8"
+    - "[x] 4 energy_curve: claves = ids del form"
+    - "[x] 5 la energia baja dos veces (P1->B1, D1->O1), confirmado en el RMS medido"
+    - "[x] 6 tres eventos de sustraccion"
+    - "[x] 7 todas las partes tienen entry; seq, leadII, bass, drums y bleeps salen antes de end"
+    - "[x] 8 arrangement_hook = ostinato"
+    - "[x] 9 acordes fuera de la tonalidad en V1, P1 y D1 (Cm, D#m, F#m)"
+    - "[x] 10 fills en 12, 20, 28, 30: no es progresion de diferencia 4"
+    - "[x] 11 push_pull: leadII +40 ms (implementado), reles +-2 ms"
+    - "[x] 12 width_map con tres valores, medidos"
+    - "[x] 13 style_prompt sin epic/emotional/beautiful"
+    - "[x] 14 56 s de musica + 4 s de reinicio = 60 s (6.7 %)"
+    - "[-] 15/16 instrumental: no aplica (ver exemptions)"
+    - "[x] 17 un solo estilo"
+    - "[x] 18 motif y stated_in completos; ningun 'new'; V1 = repeat"
+    - "[x] 19 acordes en ASCII y del conjunto cerrado (Am Cm/A D#m/A F#m A5)"
+    - "[~] 20 key bien formada; mode vacio (octatonica fuera del enum, ver exemptions)"
+    - "[x] one_thing es una sola frase"
+    - "[x] el arrangement_hook se puede tararear: es el ostinato que arranca el tema"
+    - "[x] melody_register cambia entre secciones vecinas (中低 / 中 / 中高 / 中低 / 高 / 中)"
+    - "[x] silencio intencional: c.20 (melodia) y el segundo de silencio despues del freno"
+    - "[x] lo mas agudo, largo y fuerte de D1 (el A#5 del c.27) es la melodia principal"
+  exemptions:
+    - {rule: 15, why: "pieza instrumental: no hay vocal"}
+    - {rule: 16, why: "pieza instrumental: no hay vocal"}
+    - {rule: 20, why: "la escala octatonica no esta en el enum de mode; se deja vacio y se documenta en meta"}
+    - {rule: "mc-melody §4.2", why: "no hay cantante: el registro se fija por el lead sintetico (octava central A4-A5, rango total C#4-A#5)"}

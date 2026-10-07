@@ -28,7 +28,7 @@ import numpy as np
 
 from . import dsp, instrumentos as ins
 from .dsp import SR
-from .leitmotivs import INSTALACION, AGUJERO, ANOMALIA, Motif, n
+from .leitmotivs import INSTALACION, INSTALACION_Q, TEMBLOR, AGUJERO, ANOMALIA, Motif, n
 
 S16 = 0.125
 BAR = 14 * S16
@@ -46,6 +46,9 @@ def bar_t(b, step=0):
 def section(b):
     return SECS[min(b, NBARS) - 1]
 
+
+# II suena detras del pulso (ARR-SPEC groove.push_pull).
+II_LAG = 0.040
 
 # Freno de cinta a mitad del compas 31; el reinicio llega despues del silencio.
 STOP_T = bar_t(31, 7)
@@ -79,9 +82,15 @@ def pad_voicing(b):
 
 
 def cell_notes(b, octave=1):
-    """Las 4 notas de la celula I sobre la raiz del compas."""
+    """Las 4 notas del acorde ANOMALIA sobre la raiz del compas."""
     r = HARM[b - 1][0]
     return [ROOT[r] + 12 * octave + i for i in ANOMALIA]
+
+
+def ost_notes(b, octave=1):
+    """Notas del ostinato sobre la raiz del compas: OST da los intervalos."""
+    r = HARM[b - 1][0]
+    return [ROOT[r] + 12 * octave + i for i in OST]
 
 
 def global_bend(t):
@@ -96,8 +105,12 @@ def bend_curve(t0, dur):
     return global_bend(t0 + np.arange(int((dur + 4.0) * SR)) / SR)
 
 
-# Ostinato de 14 pasos: celula, celula, celula + vuelta (4+4+6 = 2+2+3).
-ARP = [0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 2, 1]
+# Ostinato de 14 pasos (4+4+6 = 2+2+3), hecho con las alturas de I sobre la
+# raiz: A, E, D#, E (a1+a2) dos veces y A# A E D# E A (a3 y vuelta).
+OST = [0, 7, 6, 7, 0, 7, 6, 7, 1, 0, 7, 6, 7, 12]
+ARP = list(range(14))
+# Proceso aditivo del ARRANQUE: que intervalos del ostinato suenan en cada compas.
+ADITIVO = [{0}, {0, 7}, {0, 7, 6}, {0, 7, 6, 1, 12}]
 ACC = [1, .4, .6, .5, .9, .4, .6, .5, 1, .4, .6, .5, .7, .5]
 GATE = [1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1]
 
@@ -105,6 +118,9 @@ GATE = [1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1]
 # ------------------------------------------------------------------ melodia
 
 def melodia(rng):
+    """Melodia revisada con mc-melody: octava central A4-A5, rango total
+    C#4-A#5, saltos siempre preparados, nada de transporte paralelo con los
+    acordes, una distorsion (la pregunta A5-A#5) y su respuesta en el climax."""
     bus = ins.Bus(TOTAL, "melodia")
 
     def play_I(motif, t, vel=1.0, bits=7, bright=1.0):
@@ -122,51 +138,65 @@ def melodia(rng):
             t += d * S16
         L, R = ins.singularity_lead(ev, t, rng, redshift=redshift, bright=bright,
                                     bend=bend_curve(bar_t(b), t))
-        bus.add(bar_t(b), L, R, gain)
+        # II va 40 ms detras del pulso: la gravedad la retiene (push_pull).
+        bus.add(bar_t(b) + II_LAG, L, R, gain)
 
-    # 2 PRUEBA. Frase A (c.9-10): I, I rotado a C, y la D#6 que se traba y cae
-    # un tritono a A#5. Frase B (c.11-12): I y su sombra a un tritono (D#).
-    traba = Motif([(n("D#6"), 1)] * 3 + [(n("A#5"), 11)])
-    play_I(INSTALACION + INSTALACION.transpose(3) + traba, bar_t(9))
-    traba2 = Motif([(n("A6"), 1)] * 3 + [(n("D#6"), 11)])
-    play_I(INSTALACION + INSTALACION.transpose(6) + traba2, bar_t(11))
+    # 2 PRUEBA (Verse). Antecedente / pregunta, con un compas de aire entre
+    # cada frase para que conteste el secuenciador (mc-melody §7.3).
+    # La tercera vez cambia (§8.2): el temblor se traba y no aterriza.
+    play_I(INSTALACION, bar_t(5))
+    play_I(INSTALACION_Q, bar_t(7))
+    play_I(INSTALACION, bar_t(9))
+    traba = Motif(INSTALACION.notes[:2] + TEMBLOR.notes * 3 + [(n("A#4"), 4)])
+    play_I(traba, bar_t(11))
 
-    # 3 ESCALADA. Cada dos compases: I dos veces sobre la raiz nueva y su
-    # reflejo descendente (la retrogradacion: II asomando dentro de la maquina).
-    for k, b in enumerate((13, 15, 17, 19)):
-        r = HARM[b - 1][0]
-        cell = INSTALACION.transpose(ROOT[r] + 12 - n("A4"))
-        refl = cell.retrograde().rhythm([2, 2, 1, 2])
-        t = play_I(cell + cell, bar_t(b), vel=0.9 + 0.05 * k)
-        t = play_I(refl, t, vel=0.75, bright=0.7)
-        play_I(Motif([(refl.notes[-1][0], 7)]), t, vel=0.5, bright=0.5)
+    # 3 ESCALADA (Pre-Chorus). Fragmentacion + secuencia del temblor a2, que
+    # cada vez es mas corto y mas agudo mientras el bajo sube por terceras
+    # menores. No es transporte paralelo: el fragmento se apoya en una nota
+    # distinta de cada acorde (5a de Cm, 5a de D#m, 3a de F#m).
+    play_I(INSTALACION_Q, bar_t(13))
+    play_I(Motif(INSTALACION.notes[:2] + TEMBLOR.notes * 2 + [(n("E5"), 6)]), bar_t(14), vel=0.9)
+    g = Motif([(n("G5"), 2), (n("F#5"), 1), (n("G5"), 1)])            # Cm
+    play_I(g + g + Motif([(n("G5"), 6)]), bar_t(15))
+    play_I(g + g + g + Motif([(n("F#5"), 2)]), bar_t(16))
+    a = Motif([(n("A#5"), 1), (n("A5"), 1)])                           # D#m
+    play_I(Motif([(n("A#5"), 2)]) + a + a + a + a + Motif([(n("A#5"), 4)]), bar_t(17))
+    play_I(Motif((a.notes) * 7), bar_t(18))
+    # F#m: A5 repetida en el agudo = tension sostenida (mc-melody §2.2),
+    # y un compas de silencio antes del horizonte (el hueco que se pide).
+    play_I(Motif([(n("A5"), 1)] * 14), bar_t(19), vel=0.8, bits=6)
 
-    # 4 HORIZONTE. II en espiral: dos veces, la segunda un semitono abajo.
-    play_II(AGUJERO, 21, gain=0.9)
-    play_II(AGUJERO.transpose(-1), 24, gain=0.9, redshift=-1.3)
+    # 4 HORIZONTE (Breakdown). II dos veces, la segunda un semitono abajo.
+    play_II(AGUJERO, 21, gain=0.45)
+    play_II(AGUJERO.transpose(-1), 24, gain=0.45, redshift=-1.3)
 
-    # 5 COLAPSO. I en disminucion (semicorcheas parejas), alternando A y D#,
-    # sobre II una octava abajo.
-    for b in range(27, 31):
-        cell = INSTALACION.rhythm([1, 1, 1, 1]).transpose(ROOT[HARM[b - 1][0]] + 12 - n("A4"))
-        pat = cell + cell + cell + Motif([(cell.notes[-1][0], 1)] * 2)
-        play_I(pat, bar_t(b), vel=0.85, bits=6)
-    play_II(AGUJERO.octave(-1), 27, gain=0.85, bright=0.8, redshift=-2.0)
+    # 5 COLAPSO (Drop). Climax en el compas 27 (76 % = 3/4 del tema): la nota
+    # mas aguda, la mas larga y con todo el arreglo. A#5 responde a la pregunta
+    # bajando a A5 (la distorsion se contesta, §8.3). Despues, I en disminucion
+    # (panico) sobre II una octava abajo.
+    play_I(Motif([(n("A#5"), 14)]), bar_t(27), vel=1.0, bits=6)
+    t = play_I(Motif([(n("A5"), 6)]), bar_t(28), vel=0.95, bits=6)
+    play_I(INSTALACION.rhythm([1, 1, 1, 1, 2, 2]), t, vel=0.85, bits=6)
+    dim = INSTALACION.rhythm([1, 1, 1, 1, 1, 1])
+    play_I(dim + dim + Motif(TEMBLOR.notes), bar_t(29), vel=0.85, bits=6)
+    play_I(Motif(TEMBLOR.notes * 5) + Motif([(n("A#4"), 4)]), bar_t(30), vel=0.85, bits=6)
+    play_II(AGUJERO.octave(-1), 27, gain=0.8, bright=0.8, redshift=-2.0)
 
-    # 6 APAGADO: la D#6 sostenida hasta que la cinta frena.
-    play_I(Motif([(n("A5"), 3), (n("A#5"), 3), (n("D#6"), 20)]), bar_t(31), vel=0.9, bits=6)
+    # 6 APAGADO (Outro): a1+a2 y el E5 que queda sonando mientras frena la cinta.
+    play_I(Motif(INSTALACION.notes[:3] + [(n("E5"), 20)]), bar_t(31), vel=0.9, bits=6)
     return bus
 
 
 def reinicio(rng):
-    """Despues del freno: la celula intenta arrancar y no llega a la D#."""
+    """Despues del freno, reduccion (contract): la celula arranca lenta y se
+    queda en el temblor; nunca llega a la caida ni a la A final."""
     bus = ins.Bus(TOTAL, "reinicio")
     t = REBOOT_T
-    for m, d in INSTALACION.head(3).augment(2).notes:
+    for m, d in INSTALACION.head(4).augment(2).notes:
         L, R = ins.aperture_lead(m, d * S16 * 0.9, rng, vel=0.55, bits=5, bright=0.6)
         bus.add(t, L, R)
         t += d * S16
-    x = ins.bleep(n("D#7"), 0.05, rng)
+    x = ins.bleep(n("A#6"), 0.05, rng)
     bus.add(t + 0.35, x, x, 0.12)
     return bus
 
@@ -207,10 +237,10 @@ def acompanamiento(rng):
         sec = section(b)
         if sec == "4":
             continue
-        notes = cell_notes(b, octave=0 if sec == "1" else 1)
+        notes = ost_notes(b, octave=0 if sec == "1" else 1)
         for s in range(14):
             idx = ARP[s]
-            if sec == "1" and idx > b - 1:          # proceso aditivo
+            if sec == "1" and OST[idx] not in ADITIVO[b - 1]:   # proceso aditivo
                 continue
             if (b in (12, 20) and s >= 10) or (sec == "5" and s >= 12):
                 for r in range(2):                  # ratchet
@@ -227,7 +257,7 @@ def acompanamiento(rng):
     while t < bar_t(27) - 0.1:
         b = 21 + int((t - bar_t(21)) / BAR)
         u = (t - bar_t(21)) / (6 * BAR)
-        notes = cell_notes(b, octave=1)
+        notes = ost_notes(b, octave=1)
         x = ins.arp_note(notes[ARP[k % 14]], min(d, 0.45), rng,
                          accent=ACC[k % 14] * (1 - 0.6 * u), bend=float(global_bend(t)))
         seq.add(t, *dsp.pan(x, -0.5 if k % 2 else 0.5), gain=0.8)
@@ -269,7 +299,7 @@ def acompanamiento(rng):
     env = dsp.adsr(int(dur * SR), 0.6, 1.0, 0.9, 1.5)
     f = dsp.midi_hz(n("A1") + ins.fit(bend_curve(bar_t(21), dur), len(env)))
     sub = dsp.sine(f) + 0.3 * dsp.lowpass(dsp.saw(f, 0.0), 240.0, 1.2)
-    low.add(bar_t(21), sub * env, sub * env, 0.9)
+    low.add(bar_t(21), sub * env, sub * env, 0.55)
 
     # Bateria (2+2+3).
     drums = ins.Bus(TOTAL, "bateria")
@@ -285,7 +315,7 @@ def acompanamiento(rng):
         sec = section(b)
         if sec == "4":
             if b % 2 == 1:
-                hit(ins.kick(rng, deep=True), bar_t(b), kick=True)
+                hit(ins.kick(rng, deep=True), bar_t(b), gain=0.7, kick=True)
             continue
         if sec == "2" and b < 7:
             for s in range(0, 14, 2):
@@ -321,14 +351,14 @@ def textura(rng):
     N = bus.n
     bend = global_bend(np.arange(N) / SR)
 
-    lvl = dsp.automation([(0, 0.0), (2.5, 0.9), (bar_t(21), 0.8), (bar_t(22), 1.3),
+    lvl = dsp.automation([(0, 0.0), (2.5, 0.9), (bar_t(21), 0.8), (bar_t(22), 0.9),
                           (bar_t(27), 1.0), (60, 1.0)], N)
     L, R = ins.drone(N, rng, lvl, bend=bend)
     bus.add(0, L, R)
 
     center = dsp.automation([(0, 400), (bar_t(5), 900), (bar_t(13), 1500), (bar_t(21), 1800),
                              (bar_t(27), 250), (bar_t(27) + 0.01, 1600), (60, 1600)], N)
-    alv = dsp.automation([(0, 0.0), (3, 1.0), (bar_t(21), 0.9), (bar_t(26), 1.5),
+    alv = dsp.automation([(0, 0.0), (3, 1.0), (bar_t(21), 0.8), (bar_t(26), 1.0),
                           (bar_t(27), 1.0), (60, 1.0)], N)
     L, R = ins.air(N, rng, alv, center)
     bus.add(0, L, R)
@@ -369,9 +399,9 @@ def textura(rng):
 
     # Horizonte de sucesos y caida final.
     L, R = ins.horizon_sweep(3.5, rng)
-    bus.add(bar_t(21) - 1.75, L, R, 0.5)
+    bus.add(bar_t(21) - 1.75, L, R, 0.4)
     x = ins.sub_fall(4.0, 110.0, 27.5)
-    bus.add(bar_t(21), x, x, 0.5)
+    bus.add(bar_t(21), x, x, 0.35)
     x = ins.sub_fall(STOP_DUR + 0.6, 90.0, 20.0)
     bus.add(STOP_T, x, x, 0.6)
     return bus
