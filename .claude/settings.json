@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "music-composition-skills": {
+      "source": {
+        "source": "github",
+        "repo": "jtydhr88/music-composition-skills"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "music-composition@music-composition-skills": true
+  }
+}
