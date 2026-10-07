@@ -29,25 +29,31 @@ def space(L, R, send, size, decay, damp):
     return L + wl, R + wr
 
 
-def mix(stems):
+def mix(stems, reboot):
     tex, acc, mel = stems["textura"], stems["acompanamiento"], stems["melodia"]
 
     # Textura: nave enorme, reverb larga y oscura.
-    tL, tR = space(tex.L, tex.R, 0.6, 1.9, 0.93, 3000.0)
+    tL, tR = space(tex.L, tex.R, 0.55, 1.9, 0.92, 3000.0)
     tL, tR = dsp.highpass(tL, 28.0), dsp.highpass(tR, 28.0)
 
-    # Acompanamiento: sala media; chorus para abrir el colchon.
-    aL, aR = space(acc.L, acc.R, 0.35, 1.2, 0.86, 4500.0)
+    # Acompanamiento: sala media y seca (el secuenciador tiene que picar).
+    aL, aR = space(acc.L, acc.R, 0.25, 1.0, 0.82, 4500.0)
     aL, aR = dsp.highpass(aL, 30.0), dsp.highpass(aR, 30.0)
 
-    # Melodia: el cristal y las sierras al frente, con cola larga y eco.
-    dl, dr = dsp.pingpong(mel.L, mel.R, 0.45, fb=0.35, damp_hz=3000.0)
-    mL, mR = mel.L + dl * 0.3, mel.R + dr * 0.3
-    mL, mR = space(mL, mR, 0.45, 1.5, 0.9, 5000.0)
+    # Melodia: al frente, con eco y cola.
+    dl, dr = dsp.pingpong(mel.L, mel.R, 0.375, fb=0.3, damp_hz=3200.0)
+    mL, mR = mel.L + dl * 0.25, mel.R + dr * 0.25
+    mL, mR = space(mL, mR, 0.35, 1.4, 0.88, 5000.0)
 
-    out = {"textura": (tL * 0.9, tR * 0.9),
-           "acompanamiento": (aL * 0.85, aR * 0.85),
+    out = {"textura": (tL * 0.85, tR * 0.85),
+           "acompanamiento": (aL * 0.9, aR * 0.9),
            "melodia": (mL * 1.0, mR * 1.0)}
+    # Cortes glitch y freno de cinta, identicos en las tres capas.
+    out = {k: partitura.ediciones(*v) for k, v in out.items()}
+    # El reinicio suena despues del freno, con su propio espacio.
+    rL, rR = space(reboot.L, reboot.R, 0.6, 1.6, 0.9, 4000.0)
+    mL, mR = out["melodia"]
+    out["melodia"] = (mL + rL, mR + rR)
     return out
 
 
@@ -61,10 +67,9 @@ def master(L, R):
     rms = np.sqrt(np.mean((L ** 2 + R ** 2) / 2))
     g = 10 ** (-16.0 / 20.0) / (rms + 1e-12)
     L, R = dsp.limiter(L * g, R * g, ceiling_db=-1.0)
-    # Fundidos de seguridad en los bordes (el tema empieza y termina en el
-    # pedal, asi que en bucle el empalme es natural).
+    # Fundidos de seguridad en los bordes.
     n = len(L)
-    fi, fo = int(0.05 * SR), int(1.2 * SR)
+    fi, fo = int(0.05 * SR), int(0.3 * SR)
     ramp = np.ones(n)
     ramp[:fi] = np.linspace(0, 1, fi)
     ramp[-fo:] = np.linspace(1, 0, fo) ** 2
@@ -97,7 +102,8 @@ def render():
     acc = partitura.acompanamiento(rng)
     print("textura...", flush=True)
     tex = partitura.textura(rng)
-    stems = mix({"textura": tex, "acompanamiento": acc, "melodia": mel})
+    reboot = partitura.reinicio(rng)
+    stems = mix({"textura": tex, "acompanamiento": acc, "melodia": mel}, reboot)
     L = sum(s[0] for s in stems.values())
     R = sum(s[1] for s in stems.values())
     print("master...", flush=True)

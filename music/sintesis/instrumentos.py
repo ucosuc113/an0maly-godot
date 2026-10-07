@@ -109,7 +109,7 @@ def facility_lead(midi, dur, rng, glide_to=None, glide_time=0.0, vel=1.0):
     return dsp.pan(x, 0.08)
 
 
-def singularity_lead(events, end, rng, redshift=-0.8, glide=0.16, bright=1.0):
+def singularity_lead(events, end, rng, redshift=-0.8, glide=0.16, bright=1.0, bend=None):
     """Leitmotiv II: voz legato de sierras desafinadas con portamento.
 
     events: [(t_s, midi), ...] relativo al inicio de la frase; `end` = largo.
@@ -135,6 +135,8 @@ def singularity_lead(events, end, rng, redshift=-0.8, glide=0.16, bright=1.0):
     for s0, s1 in zip(starts, starts[1:]):
         age[s0:s1] = np.arange(s1 - s0) / SR
     vib = 0.18 * np.clip((age - 0.35) / 1.2, 0, 1) * dsp.lfo(n, 4.6)
+    if bend is not None:
+        m = m + fit(bend, n)
     f = dsp.midi_hz(m + vib)
     L, R = supersaw(f, voices=5, spread=0.14, rng=rng)
     sub = dsp.sine(f * 0.5) * 0.45
@@ -146,7 +148,7 @@ def singularity_lead(events, end, rng, redshift=-0.8, glide=0.16, bright=1.0):
     return L * 0.9, R * 0.9
 
 
-def arp_note(midi, dur, rng, accent=1.0, bend=0.0, crush=True):
+def arp_note(midi, dur, rng, accent=1.0, bend=0.0, crush=True, bits=9):
     """Secuenciador: pulso con PWM + sierra, filtro con golpe de envolvente.
     Corto, seco y preciso: el reloj de la instalacion (lenguaje Portal 2)."""
     tail = 0.12
@@ -159,18 +161,19 @@ def arp_note(midi, dur, rng, accent=1.0, bend=0.0, crush=True):
     env = dsp.adsr(int(dur * 0.85 * SR), 0.002, 0.11, 0.35, tail, curve=6.0)
     x = x * fit(env, n) * (0.6 + 0.4 * accent)
     if crush:
-        x = dsp.bitcrush(x, bits=9, hold=2) * 0.6 + x * 0.4
+        x = dsp.bitcrush(x, bits=bits, hold=2) * 0.6 + x * 0.4
     return x
 
 
-def pad_chord(midis, dur, rng, cutoff=1400.0, dark=0.0):
+def pad_chord(midis, dur, rng, cutoff=1400.0, dark=0.0, bend=None):
     """Colchon armonico: 7 sierras por nota, ataque y caida lentos, chorus."""
     rel = 2.2
     n = int((dur + rel) * SR)
     L = np.zeros(n)
     R = np.zeros(n)
     for m in midis:
-        f = dsp.midi_hz(np.full(n, float(m)))
+        mm = np.full(n, float(m)) if bend is None else m + fit(bend, n)
+        f = dsp.midi_hz(mm)
         f = f * (1.0 + 0.0012 * dsp.smooth_random(n, 0.4, rng))
         l, r = supersaw(f, voices=7, spread=0.2, rng=rng)
         L += l
@@ -224,7 +227,7 @@ def kick(rng, deep=False):
 
 # ------------------------------------------------------- capa 3: texturas
 
-def drone(n, rng, level):
+def drone(n, rng, level, bend=None):
     """Zumbido del reactor por sintesis aditiva: parciales de A1 con batidos
     lentos; cada parcial respira con su propia deriva aleatoria."""
     L = np.zeros(n)
@@ -235,11 +238,13 @@ def drone(n, rng, level):
     for k, (h, a) in enumerate(partials):
         amp = a * (0.6 + 0.4 * dsp.smooth_random(n, 0.08 + 0.03 * k, rng))
         f = base * h * (1.0 + 0.0009 * dsp.smooth_random(n, 0.05, rng))
+        if bend is not None:
+            f = f * 2.0 ** (bend / 12.0)
         s = dsp.sine(np.full(n, 1.0) * f, rng.uniform()) * amp
         l, r = dsp.pan(s, (k % 3 - 1) * 0.35)
         L += l
         R += r
-    return L * level * 0.16, R * level * 0.16
+    return L * level * 0.1, R * level * 0.1
 
 
 def air(n, rng, level, center):
@@ -329,3 +334,94 @@ def sub_fall(dur, f0=110.0, f1=27.5):
     f = f0 * (f1 / f0) ** u
     env = np.minimum(u * 8, 1) * (1 - u) ** 1.5
     return dsp.sine(f) * env
+
+
+# ------------------------------------------------- lenguaje Portal 2
+
+def aperture_lead(midi, dur, rng, vel=1.0, bits=7, glide_from=None, bend=0.0, bright=1.0):
+    """Leitmotiv I: pulso estrecho desafinado, golpe de filtro y bitcrush.
+    El "plomo" de laboratorio: digital, seco, sin vibrato."""
+    tail = 0.3
+    n = int((dur + tail) * SR)
+    m = np.full(n, midi + bend)
+    if glide_from is not None:
+        m = m + (glide_from - midi) * np.exp(-np.arange(n) / (0.025 * SR))
+    f = dsp.midi_hz(m)
+    x = dsp.pulse(f, np.full(n, 0.22), rng.uniform()) * 0.6
+    x += dsp.pulse(f * 1.006, np.full(n, 0.5), rng.uniform()) * 0.35
+    x += dsp.sine(f * 0.5) * 0.25
+    x = dsp.svf(x, (700.0 + 5200.0 * bright * dsp.perc(n, 0.14)), 1.6, 0)
+    env = fit(dsp.adsr(int(dur * SR), 0.002, 0.18, 0.55, tail, curve=6.0), n)
+    x = x * env * vel
+    x = dsp.bitcrush(x, bits=bits, hold=3) * 0.75 + x * 0.25
+    return dsp.pan(dsp.highpass(x, 150.0), 0.0)
+
+
+def bleep(midi, dur, rng, bend=0.0):
+    """Pitido de computadora: seno con un chirp de arranque."""
+    n = int((dur + 0.04) * SR)
+    t = np.arange(n) / SR
+    f = dsp.midi_hz(midi + bend) * (1.0 + 0.04 * np.exp(-t / 0.006))
+    x = dsp.sine(f) + 0.15 * dsp.sine(f * 2.0)
+    return x * dsp.perc(n, dur * 0.5, attack=0.001)
+
+
+def snare(rng, vel=1.0):
+    """Caja electronica seca: cuerpo de seno + ruido pasabanda, crujiente."""
+    n = int(0.3 * SR)
+    t = np.arange(n) / SR
+    body = np.sin(2 * np.pi * np.cumsum(185.0 + 60.0 * np.exp(-t / 0.01)) / SR) * dsp.perc(n, 0.05)
+    nz = dsp.bandpass(dsp.white(n, rng), 2600.0, 0.7) * dsp.perc(n, 0.09) * 1.4
+    x = dsp.saturate(body * 0.7 + nz, 2.0) * vel
+    return dsp.bitcrush(x, 8, 2) * 0.5 + x * 0.5
+
+
+def hat(rng, open_=False, vel=1.0):
+    n = int((0.25 if open_ else 0.05) * SR)
+    x = dsp.highpass(dsp.white(n, rng), 7500.0, 0.9)
+    x += dsp.fm(np.full(n, 4100.0), 1.47, 4.0) * 0.25
+    return x * dsp.perc(n, 0.09 if open_ else 0.018) * vel * 0.5
+
+
+def clank(rng, vel=1.0):
+    """Golpe metalico de la instalacion: FM inarmonica (razon sqrt 2)."""
+    n = int(0.35 * SR)
+    f0 = rng.uniform(180.0, 420.0)
+    x = dsp.fm(np.full(n, f0), 1.414, 7.0 * dsp.perc(n, 0.03)) * dsp.perc(n, 0.12)
+    x += dsp.bandpass(dsp.white(n, rng), f0 * 6, 4.0) * dsp.perc(n, 0.02) * 0.6
+    return x * vel * 0.6
+
+
+def servo(dur, rng, f0=180.0, f1=420.0):
+    """Brazo mecanico moviendose: pulso barrido con temblor de motor."""
+    n = int(dur * SR)
+    u = np.linspace(0, 1, n)
+    f = f0 * (f1 / f0) ** u * (1 + 0.02 * dsp.lfo(n, 31.0))
+    x = dsp.pulse(f, np.full(n, 0.3), 0.0)
+    x = dsp.bandpass(x, f * 3.0, 2.0)
+    env = np.sin(np.pi * u) ** 0.5
+    return dsp.bitcrush(x * env, 8, 2) * 0.5
+
+
+def reverse_swell(dur, rng, midis):
+    """Remolino invertido que "aspira" hacia el siguiente golpe."""
+    n = int(dur * SR)
+    u = np.linspace(0, 1, n)
+    x = dsp.bandpass(dsp.pink(n, rng), 300.0 * (20.0 ** u), 1.2) * 0.6
+    for m in midis:
+        x += dsp.saw(dsp.midi_hz(np.full(n, float(m))), rng.uniform()) * 0.15
+    x = dsp.lowpass(x, 200.0 * (40.0 ** u), 1.0)
+    env = u ** 3
+    return dsp.pan(x * env, 0.0)
+
+
+def dist_bass(midi, dur, rng, vel=1.0, bend=0.0):
+    """Bajo de Portal: cuadrada + sierra saturadas, filtro con golpe, sub."""
+    tail = 0.05
+    n = int((dur + tail) * SR)
+    f = dsp.midi_hz(np.full(n, midi + bend))
+    x = dsp.pulse(f, np.full(n, 0.5), rng.uniform()) * 0.5 + dsp.saw(f * 1.004, rng.uniform()) * 0.5
+    x = dsp.ladder(x, 140.0 + 1400.0 * dsp.perc(n, 0.06), 1.2, 3.0)
+    x = dsp.saturate(x, 2.5) * 0.6 + dsp.sine(f) * 0.6
+    env = fit(dsp.adsr(int(dur * SR), 0.002, 0.12, 0.7, tail, curve=5.0), n)
+    return x * env * vel

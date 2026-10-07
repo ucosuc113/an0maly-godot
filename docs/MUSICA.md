@@ -17,213 +17,217 @@ mismo archivo. La carpeta `music/` tiene un `.gdignore` y Godot no la importa.
 
 ---
 
-## 1. Punto de partida: qué hace la música actual del menú
+## 1. Punto de partida
+
+### La música actual del menú
 
 `assets/MenuMusic.ogg` es de *Portal Reloaded*. Analizada por espectro y
 croma, tiene estas características:
 
-| Rasgo | Medición | Qué transmite |
-|---|---|---|
-| Tonalidad | **La menor** con G# muy presente (menor armónica) | laboratorio frío con una tensión que nunca termina de resolver |
-| Tempo | ~100 BPM | pulso de máquina, ni calmo ni urgente |
-| Bajo | pedal casi constante en **A1** | la instalación siempre encendida |
-| Arriba | líneas cromáticas (B-C-C#, D-D#-E) sobre arpegios | precisión mecánica con pequeñas "fallas" |
-| Espectro | 90 % de la energía entre 250 Hz y 4 kHz y casi nada sobre 4 kHz | brillante pero "vieja", como un monitor CRT |
+| Rasgo | Medición |
+|---|---|
+| Tonalidad | La menor, con G# muy presente |
+| Tempo | ~100 BPM |
+| Bajo | pedal casi constante en A1 |
+| Arriba | arpegios con apoyaturas cromáticas |
+| Espectro | 90 % de la energía entre 250 Hz y 4 kHz, casi nada sobre 4 kHz |
 
-En el lenguaje de Portal 2 (Mike Morasky), esto corresponde a secuenciadores
-de onda cuadrada que se traban, arpegios como relojes, ecos ping-pong,
-bitcrush y una armonía clínica que se oscurece de a poco. Esa es la sensación
-que hay que conservar. Lo que falta es un **tema propio** que hable del
-juego: una instalación que contiene una singularidad.
+### Qué es "Portal 2" (Mike Morasky) y qué evitamos
 
-El resto del OST actual, medido igual:
+La primera versión del tema usaba una armonía funcional (Am–F–Dm–E7), un
+bajo de lamento cromático y un cierre que volvía a la tónica. Eso suena a
+música de película *épica/emotiva*: cuando crece se vuelve alegre y cuando
+baja cae en el cliché de "cerrar el bucle". Portal 2 trabaja de otra forma:
 
-| Pista | Dónde suena | Tonalidad aprox. | BPM | Carácter |
-|---|---|---|---|---|
-| MenuMusic | menú | La menor | 100 | brillante, arpegiada |
-| BackgroundMusic | sala, en bucle | Fa / Do menor | ~129 | grave (50 % < 80 Hz), ambiental |
-| Interfacing | fase 2 | Do menor | 100 | medios-graves, mecánica |
-| Singularity | fase 3 | ambigua (Re# / Fa menor) | 100 | oscura (centroide 750 Hz) |
-| KineticEnergy | meltdown | Do menor | ~117 | sub dominante, urgente |
+| Portal 2 | Lo que **no** hace |
+|---|---|
+| **Células** de 3 a 5 notas repetidas como ostinato, no melodías largas | frases cantables de 8 compases |
+| **Compases impares** (7/8, 5/4) y polimetría (capas que se desfasan) | 4/4 cuadrado |
+| **Procesos aditivos**: el patrón se arma nota por nota | entradas "de golpe" |
+| Armonía **estática o simétrica** (pedales, tritonos, terceras menores, escala octatónica) | cadencias IV–V–I, progresiones pop |
+| Secuenciadores **bitcrushed**, compuertas rítmicas, sidechain, tartamudeos | sonido limpio y sostenido |
+| Finales por **falla**: freno de cinta, corte, apagado | resolución en la tónica |
+
+Ese es el lenguaje del tema nuevo.
 
 ---
 
-## 2. Los dos leitmotivs
+## 2. El acorde ANOMALÍA y los dos leitmotivs
 
 ![leitmotivs](musica/leitmotivs.png)
 
-### I. LA INSTALACIÓN
+Los dos temas usan **las mismas cuatro notas**:
 
 ```
-A4  E5  D5  G#5  A5        intervalos  +7  -2  +6  +1
-2   2   4   3    5         semicorcheas (= un compás exacto)
+ANOMALÍA = { A, E, A#, D# }   = dos tritonos entrelazados  (A–D#)  (E–A#)
 ```
 
-- **Empieza en la tónica y sube una quinta.** La quinta es el intervalo más
-  estable: representa estructura, ingeniería y orden.
-- **D5 → G#5 es un tritono.** Es la grieta dentro de la máquina: el intervalo
-  más inestable, metido en medio del orden.
-- **G#5 → A5 es la sensible que resuelve.** La instalación corrige su propia
-  falla: el ciclo se cierra.
-- El ritmo 2-2-4-3-5 llena un compás justo. Cada vez que suena el tema, es un
-  ciclo completo de la máquina.
-- **Timbre:** cristal FM, con la portadora 1:3 y un índice de modulación que
-  cae en 90 ms (un golpe brillante que se vuelve tono puro), más un pulso
-  suave una octava abajo. Afinación perfecta, sin vibrato: la instalación
-  no duda.
+No es un acorde mayor ni menor: no tiene cadencia posible ni "se alegra".
+Es simétrico: transportado un tritono da las mismas notas. Es a la vez el
+sonido de la instalación y el de la anomalía que contiene.
 
-**Respuesta (I')**: `F5 E5 B4 C5 A4`, con el mismo ritmo. Baja de vuelta a la
-tónica y forma con I una frase de pregunta y respuesta.
+### I. LA INSTALACIÓN: la célula
 
-**Fragmento "la grieta"**: `A4 E5 D5 G#5` con G#5 sostenido y sin resolver.
-Cierra cada frase sobre el acorde de E7(b9). Es la instalación al límite.
+```
+A4  E5  A#5  D#6          intervalos  +7  +6  +5
+2   2   1    2            semicorcheas = 7 = medio compás de 7/8
+```
+
+- **Sube con intervalos que se achican** (quinta, tritono, cuarta): es una
+  máquina que frena con precisión.
+- Dura **7 semicorcheas**. Dos células llenan un compás de 7/8 (2+2+3). La
+  máquina nunca cae en un 4/4 cómodo: siempre le sobra o le falta un pulso.
+- Es a la vez **ostinato** (el secuenciador la repite en todo el tema) y
+  **melodía** (el lead la enuncia).
+- **Timbre:** dos pulsos estrechos desafinados con un golpe de filtro y
+  bitcrush de 6 a 7 bits. Es digital y seco, sin vibrato: la instalación no
+  duda.
+
+**Rotaciones**: I transportado por terceras menores (A → C → D# → F#) se queda
+dentro de la escala octatónica. La rotación de un tritono (D#) tiene las
+mismas notas que I en otro orden: es su sombra.
+
+**La traba**: la última nota de I repetida (D#6 D#6 D#6), que cae un tritono.
+Es la máquina atascada.
 
 ### II. EL AGUJERO NEGRO
 
 ```
-E5  A4  B4  F4  E4         intervalos  -7  +2  -6  -1
-4   4   8   6   10         semicorcheas (= dos compases)
+D#5  A#4  E4  A3          intervalos  -5  -6  -7
+6    8    12  16          semicorcheas = 42 = tres compases
 ```
 
-- Es la **inversión exacta** de I: cada intervalo cambia de sentido. El
-  agujero negro es la instalación vista en un espejo.
-- Va en **aumentación x2**: las mismas proporciones al doble de duración.
-  Es la dilatación temporal cerca del horizonte de sucesos.
-- Donde I sube una quinta, II cae una quinta. Donde I salta un tritono hacia
-  arriba, II se desploma un tritono (B4 → F4). Donde I resuelve medio tono
-  hacia arriba, II se hunde medio tono (F4 → E4) y queda en la dominante,
-  sin volver a casa.
-- **Timbre:** cinco sierras desafinadas con un sub seno, un filtro de 24 dB y
-  portamento entre las notas. Antes de cada salto la nota cae un poco
-  (arrastre gravitacional). La última nota se **corre al rojo**: baja entre
-  0.5 y 1.5 semitonos mientras suena, y el vibrato crece en las notas largas.
+- Es **I retrogradado una octava abajo**: las mismas notas, cayendo.
+- **Cae con intervalos que crecen** (cuarta, tritono, quinta): es una caída
+  que acelera, lo opuesto exacto de I.
+- **Cada nota dura más que la anterior** (6, 8, 12, 16): es la dilatación
+  temporal al acercarse al horizonte.
+- **Timbre:** cinco sierras desafinadas con un sub seno y portamento. Antes
+  de cada salto la nota cae (arrastre gravitacional). La última se corre al
+  rojo (baja entre 1 y 2 semitonos) y el vibrato crece.
 
-**La relación entre los dos es el núcleo del OST.** Cualquier variación de
-uno debe poder leerse como una deformación del otro.
+**La relación entre los dos es el núcleo del OST.** I sube y frena; II cae y
+acelera. Tienen las mismas notas y la flecha del tiempo al revés.
 
-### Transformaciones permitidas
-
-Están en `music/sintesis/leitmotivs.py` (clase `Motif`), así que la
-partitura nunca escribe los temas a mano:
+### Transformaciones (`music/sintesis/leitmotivs.py`, clase `Motif`)
 
 | Transformación | Uso dramático |
 |---|---|
-| `transpose(+3)` (I sobre C) | la instalación funcionando a régimen |
-| `transpose(-2)`, `transpose(-7)` (II) | cada aparición del agujero negro cae más bajo: nos hundimos |
-| `augment(2)` sobre I | la instalación atrapada en el tiempo dilatado: se está perdiendo |
-| `octave(±1)` | capas de la colisión |
-| `head(4)` (la grieta) | tensión sin resolver |
-| `invert()` | de I se obtiene II; aplicada a II, devuelve I |
-| `retrograde()` | reservada para el final "bueno" (ver §5) |
+| `rotacion(k)` / `transpose(3k)` | la instalación escala: más presión, más alto, nunca más alegre |
+| `retrograde()` sobre I | el reflejo: II escondido dentro de la máquina |
+| `rhythm([1,1,1,1])` (disminución) | pánico: la célula en semicorcheas parejas |
+| `augment(k)` | tiempo dilatado |
+| `transpose(-1)` sobre II | la espiral: cada vuelta cae un semitono |
+| `head(3)` (A E A#, sin D#) | el reinicio fallido |
 
 ---
 
 ## 3. El tema principal: forma y armonía
 
-100 BPM, 4/4, La menor armónica. Un compás dura 2.4 s. Son 24 compases más
-la cola (60 s).
+Negra = 120. Compás de **7/8 (2+2+3)** de 1.75 s. Son 32 compases (56 s) más
+4 s de reinicio y cola.
+
+**Armonía:** solo triadas menores sobre **A, C, D#, F#** (las cuatro
+rotaciones de la escala octatónica) y el acorde ANOMALÍA. Se mueve por
+terceras menores y tritonos y no hay ninguna cadencia.
 
 ![forma](musica/forma.png)
 
 | Compases | Sección | Armonía | Qué pasa |
 |---|---|---|---|
-| 1-4 | **A ARRANQUE** | Am9 (pedal) | Solo textura: zumbido del reactor y ventilación. En el compás 3, II asoma muy lejos, una octava abajo y casi sin brillo, como presagio. |
-| 5-8 | **B PROTOCOLO** | Am9, Fmaj7(#11), Dm6, E7(b9) | Entra el secuenciador (arpegio en semicorcheas). Suena I y, como eco lejano, su resolución G#-A. Después I' y la grieta. El reloj se traba en el último tiempo (ratchet). |
-| 9-12 | **C RÉGIMEN** | Am9, Fmaj7, Fmaj7(#11), E7(b9) | Bajo en corcheas y bombo a medio tiempo con sidechain. Suenan I, I' e I transportado a C (C-G-F-B-C cae justo sobre Fmaj7#11). Cierra la grieta. |
-| 13-16 | **D HORIZONTE** | Am9, E/G#, Am/G, F#ø | **Bajo de lamento cromático A-G#-G-F#** en legato, deslizándose. II completo y luego un tono abajo. **El arpegio se dilata**: cada paso dura 4.7 % más que el anterior (de 0.15 s a 0.6 s) y la afinación cae medio tono. La nube granular baja una octava. |
-| 17-20 | **E COLISIÓN** | Fmaj7, Dm6, Am9, E7(b9) | **Los dos leitmotivs a la vez**: I arriba (en C, I', en A y la grieta) y II abajo (una octava abajo y luego en A, terminando en A#-A sobre E7b9). Bombo en negras. Es el punto de máxima energía. |
-| 21-24 | **F DISOLUCIÓN** | Fmaj7, Dm6, Am9, Am9 | I en aumentación x2. **G#5 nunca llega a A5**: el agujero negro la arrastra en glissando hasta E4, la nota final de II. El secuenciador se apaga y el sub cae. Queda una campana lejana en A5: el ciclo vuelve a empezar. |
+| 1-4 | **1 ARRANQUE** | Am (pedal) | **Proceso aditivo**: el secuenciador arma la célula nota por nota (A, después A-E, después A-E-A#, después las cuatro). Zumbido del reactor, ventilación, relés y un servo. |
+| 5-12 | **2 PRUEBA** | Am · Cm/A · **D#m/A** | Primero hi-hats y después batería en 2+2+3 con bajo saturado. El colchón pasa por una compuerta rítmica. Frase A: I, I en C y la traba (D#6×3 → A#5). Frase B: I, I a un tritono y la traba en A6 → D#6. Tartamudeo al final. |
+| 13-20 | **3 ESCALADA** | Am → Cm → D#m → F#m (el bajo **sube por terceras menores**) | Cada dos compases, I suena dos veces en la rotación nueva y luego su **reflejo descendente** (II escondido). Entran pitidos con un periodo de 5 contra el compás de 14 (se desfasan). Servos en los cambios. Crece la presión, no la alegría. |
+| 21-26 | **4 HORIZONTE** | ANOMALÍA, **curvándose** | **Todo se curva un semitono hacia abajo** (colchón, zumbido, granos, secuenciador, melodía). II en espiral: una vez y otra un semitono más abajo. El secuenciador se **dilata** (cada paso dura 4 % más). Solo un bombo grave cada dos compases. |
+| 27-30 | **5 COLAPSO** | Am ↔ D#m/A cada compás | Batería completa y bajo en semicorcheas. I en **disminución** y bitcrush de 6 bits sobre II una octava abajo. Tartamudeos en cadena. |
+| 31-32 | **6 APAGADO** | ANOMALÍA | La D#6 queda sonando y **la cinta frena** (todo baja de altura hasta pararse). Silencio. **Reinicio**: A… E… A#… y la D# no llega. Un pitido. Fin. |
 
-El tema empieza y termina sobre el pedal de A, así que funciona en bucle
-(`AudioStreamOggVorbis.loop = true`, como lo usa `scripts/music.gd`).
+No vuelve a la tónica ni cierra un bucle: la instalación **falla**. Si se
+usa en bucle en el menú, el empalme es un apagado seguido de un arranque,
+que tiene sentido narrativo, pero no es un loop invisible.
 
 ---
 
 ## 4. Síntesis: las capas de abstracción
 
 ```
-capa 5  mezcla/master    generar_tema.py      reverb por capa, glue comp, LPF 11 kHz, limitador
-capa 4  composición      sintesis/partitura   forma, armonía, dónde va cada motivo
+capa 5  mezcla/master    generar_tema.py       reverb por capa, ediciones glitch, glue, limitador
+capa 4  composición      sintesis/partitura    forma, armonía, compuertas, tartamudeos, freno
 capa 3  instrumentos     sintesis/instrumentos patches con carácter fijo
-capa 2  voz              (instrumentos)       oscilador + envolvente + filtro + modulación
-capa 1  generadores      (instrumentos)       unísono, FM, aditiva, granular
-capa 0  DSP              sintesis/dsp.py      osciladores PolyBLEP, SVF TPT, FDN, limitador
-teoría                   sintesis/leitmotivs  motivos como datos y sus transformaciones
+capa 2  voz              (instrumentos)        oscilador + envolvente + filtro + modulación
+capa 1  generadores      (instrumentos)        unísono, FM, aditiva, granular
+capa 0  DSP              sintesis/dsp.py       PolyBLEP, SVF TPT, ladder, FDN, beat repeat, tape stop
+teoría                   sintesis/leitmotivs   motivos como datos y sus transformaciones
 ```
 
-### Las tres capas musicales pedidas
+### Las tres capas musicales
 
-**Textura** (`capa_textura`):
-- *Zumbido del reactor*: síntesis aditiva de 11 parciales de A1 (55 Hz).
-  Cada parcial tiene su propia deriva lenta de amplitud y afinación, y por
-  eso respira.
-- *Ventilación*: ruido rosa que pasa por un pasabanda que barre, con L y R
-  decorrelados.
-- *Nube granular*: miles de granos con ventana Hann tomados de una campana
-  FM y transpuestos a A, E, B, C, G#. En el horizonte, la afinación global
-  baja a la mitad (corrimiento al rojo) y los granos se estiran.
-- *Relés*: tics de ruido filtrado más FM inarmónica en semicorcheas
-  probabilísticas.
-- *Horizonte de sucesos*: barridos de ruido y seno que caen por un filtro
-  resonante que se cierra, más caídas de sub.
+**Textura** (`music/capas/capa_textura.ogg`):
+- *Zumbido del reactor*: síntesis aditiva de 11 parciales de A1 con deriva
+  propia. En el horizonte se curva junto con todo lo demás.
+- *Ventilación*: ruido rosa por un pasabanda que barre.
+- *Nube granular*: granos de una campana FM en las notas de ANOMALÍA. En el
+  horizonte caen una octava y se estiran.
+- *Relés* (clics FM y ruido), *servos* (pulso barrido con temblor de motor),
+  *remolinos invertidos* antes de ESCALADA y COLAPSO, y el barrido del
+  horizonte de sucesos.
 
 **Acompañamiento** (`capa_acompanamiento`):
-- *Colchón*: siete sierras desafinadas por nota, pasabajos SVF y ataque
-  lento.
-- *Secuenciador*: pulso con PWM más sierra, golpe de filtro por nota,
-  bitcrush de 9 bits y eco ping-pong de corchea con puntillo.
-- *Bajo*: sierra por un ladder de 24 dB más sub seno. En D toca una sola
-  nota legato que se desliza.
-- *Bombo*: seno con caída de altura y un clic. Hace sidechain sobre el
-  colchón y el bajo.
+- *Secuenciador*: la célula I como ostinato de 14 pasos (4+4+6), con pulso,
+  PWM, golpe de filtro, bitcrush, ratchets y eco ping-pong.
+- *Pitidos*: senos con chirp en un polímetro de 5 contra 14.
+- *Colchón*: siete sierras por nota con compuerta rítmica y sidechain.
+- *Bajo*: cuadrada más sierra saturadas por un ladder de 24 dB.
+- *Batería*: bombo de seno con caída, caja de ruido crujiente, hi-hats FM y
+  golpes metálicos FM (razón √2).
 
-**Melodía** (`capa_melodia`): el cristal FM (I) y las sierras legato con
-portamento (II).
+**Melodía** (`capa_melodia`): el lead *Aperture* (I) y la voz del agujero
+negro (II).
 
-Cada capa tiene su propio espacio. La textura va a una reverb FDN larga y
-oscura (nave industrial), el acompañamiento a una sala media y la melodía a
-una cola larga con eco.
+Los cortes glitch (*beat repeat* con roll) y el freno de cinta se aplican
+igual a las tres capas, así que siguen sincronizadas por separado.
 
 ---
 
 ## 5. Progresión musical del OST (hoja de ruta)
 
-La idea es que todo el OST cuente la misma historia con los dos motivos:
-**I domina al principio, II lo va invadiendo y el final decide cuál queda.**
-La tonalidad baja por terceras a medida que nos acercamos a la singularidad
-(La menor → Fa menor → Do menor), tal como ya lo hacen las pistas actuales.
+Todo el OST cuenta la misma historia con las mismas cuatro notas: **I manda
+al principio, II lo va invadiendo y el final decide qué queda.** Cada pista
+nueva debería respetar el 7/8 (o 7/16) y la armonía octatónica.
 
-| Momento del juego | Pista (actual → propuesta) | Tonalidad | Leitmotivs | Síntesis |
+| Momento del juego | Pista (actual → propuesta) | Centro | Leitmotivs | Recursos |
 |---|---|---|---|---|
-| **Menú** | MenuMusic → **Anomaly_Tema** (este) | La menor | I y II presentados; la colisión resume el juego | todo el sistema |
-| **Sala / fondo** | BackgroundMusic | La menor (pedal) | solo la textura del tema; I a veces como campana lejana | drone aditivo, ventilación, relés |
-| **Fase 1** | (sin pista) | — | la grieta (`head(4)`) en los momentos de alerta | cristal FM solo |
-| **Fase 2: Interfacing** | Interfacing | Fa menor (I en F) | I en régimen, secuenciado; II como presagio grave | secuenciador y bajo en corcheas |
-| **Fase 3: Singularity** | Singularity | Fa menor → Re menor | II domina en aumentación; I se dilata (como la sección D) | arpegio dilatado, granos al rojo |
-| **Meltdown** | KineticEnergy | Do menor | colisión: I en disminución (x0.5, acelerado y en pánico) contra II | ratchets, bitcrush, bombo en negras |
-| **Final: contención** | — | La mayor (tercera de picardía) | I completo y **resuelto**: G#-A llega y el tritono D-G# se vuelve D-E | cristal FM limpio, sin bitcrush |
-| **Final: colapso** | — | — | I se transforma en II (inversión en vivo) y todo cae al rojo | glissandos, sub cayendo hasta el silencio |
-| **Final: ambiguo** | — | La menor | `retrograde()` de II (E4 F4 B4 A4 E5): el agujero negro "devuelve" algo | granos estirados y campana lejana |
+| **Menú** | MenuMusic → **Anomaly_Tema** | A | I y II completos; resume el juego | todo |
+| **Sala / fondo** | BackgroundMusic | A (pedal) | solo el proceso aditivo de I, muy lento, sin batería | zumbido, relés, servos |
+| **Fase 1** | (sin pista) | A | la traba (D#×3) como señal de alerta | lead solo |
+| **Fase 2: Interfacing** | Interfacing | A → C | I en ostinato y rotaciones (como PRUEBA y ESCALADA) | batería 2+2+3, compuerta |
+| **Fase 3: Singularity** | Singularity | D# (tritono) | II domina; la curvatura del HORIZONTE | dilatación, granos al rojo |
+| **Meltdown** | KineticEnergy | A ↔ D# | COLAPSO: I en disminución contra II | beat repeat, bitcrush 6 bits |
+| **Final: contención** | — | A | I completo **sin traba** y la célula termina en E (quinta), no en D# | lead limpio, sin bitcrush |
+| **Final: colapso** | — | — | freno de cinta y silencio, sin reinicio | tape stop |
+| **Final: ambiguo** | — | A | el reinicio (A E A#…) se repite y nunca completa la D# | reinicio en bucle |
 
 Reglas para escribir pistas nuevas:
 
-1. **I nunca se desafina**, salvo cuando II lo toca (sección F).
-2. **II siempre se desliza**: nada de notas II sin portamento.
-3. El tritono D-G# es el "estado de alarma". Usarlo con la misma intención
-   en efectos y música.
-4. La aumentación es tiempo dilatado y la disminución es pánico. No
-   mezclarlas sin intención dramática.
-5. Se queda la paleta de 100 BPM y el pedal de la tónica: así las pistas
-   pueden empalmar (y `game_music.gd` puede hacer crossfade) sin choques
-   rítmicos.
+1. **Sin cadencias.** Nada de IV–V–I ni de bajos de lamento. Se mueve por
+   terceras menores (A–C–D#–F#) y tritonos.
+2. **I nunca se desafina** salvo cuando II lo alcanza (HORIZONTE) o cuando la
+   cinta frena.
+3. **II siempre se desliza**: nada de II sin portamento.
+4. **Crecer = escalar por terceras menores, sumar capas y apretar la
+   compuerta.** Nunca pasar a mayor.
+5. **Bajar = curvar la afinación o dilatar el tiempo.** Nunca usar una línea
+   descendente "de cierre".
+6. Las pistas terminan por **falla** (tartamudeo, freno, corte), no por
+   resolución.
 
 ---
 
 ## 6. Integración en el juego
 
-El archivo ya está en `assets/Musica/Anomaly_Tema.ogg`. Para que reemplace la
+El archivo está en `assets/Musica/Anomaly_Tema.ogg`. Para que reemplace la
 música actual del menú, hay que cambiar el `ext_resource` `15_menumusic` de
 `main.tscn` (o asignar el stream al nodo `Music` desde el editor). El master
 queda en unos −16 dBFS RMS con picos de −1 dBFS, unos 2 dB por debajo de
-`MenuMusic.ogg`. Por eso `base_volume_db` en `scripts/music.gd` puede subir
-de −14 a unos −12 dB para que suene con el mismo volumen.
+`MenuMusic.ogg`, así que `base_volume_db` en `scripts/music.gd` puede pasar
+de −14 a unos −12 dB.

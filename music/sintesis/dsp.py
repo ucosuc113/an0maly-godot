@@ -466,3 +466,71 @@ def pan(x, p):
     """Paneo de potencia constante, p en [-1, 1] (escalar o array)."""
     a = (np.asarray(p) + 1.0) * np.pi / 4.0
     return x * np.cos(a), x * np.sin(a)
+
+
+# ------------------------------------------------------------ edicion glitch
+
+def _fade_edges(x, k):
+    k = min(k, len(x) // 2)
+    if k > 0:
+        r = np.linspace(0, 1, k)
+        x[:k] *= r
+        x[-k:] *= r[::-1]
+    return x
+
+
+def beat_repeat(L, R, t, slice_s, total_s, roll=True):
+    """Repetidor de compas (el "tartamudeo" del secuenciador de Portal 2):
+    toma `slice_s` desde `t` y lo repite hasta llenar `total_s`. Con `roll`,
+    la segunda mitad repite trozos cada vez mas cortos (se acelera)."""
+    i0 = int(t * SR)
+    end = min(len(L), i0 + int(total_s * SR))
+    s = int(slice_s * SR)
+    srcL = L[i0:i0 + s].copy()
+    srcR = R[i0:i0 + s].copy()
+    i = i0
+    k = 0
+    while i < end:
+        cur = s
+        if roll and i - i0 > (end - i0) * 0.5:
+            cur = max(int(s / 2 ** (1 + k // 2)), int(0.012 * SR))
+            k += 1
+        a = _fade_edges(srcL[:cur].copy(), 64)
+        b = _fade_edges(srcR[:cur].copy(), 64)
+        m = min(cur, end - i)
+        L[i:i + m] = a[:m]
+        R[i:i + m] = b[:m]
+        i += cur
+    return L, R
+
+
+def tape_stop(L, R, t0, dur, curve=1.6):
+    """Freno de cinta: la velocidad cae a cero en `dur` segundos (todo baja de
+    altura y se arrastra) y despues silencio."""
+    i0 = int(t0 * SR)
+    n = min(int(dur * SR), len(L) - i0)
+    rate = (1.0 - np.linspace(0, 1, n)) ** curve
+    pos = i0 + np.cumsum(rate)
+    idx = np.arange(len(L))
+    outL, outR = L.copy(), R.copy()
+    fade = np.linspace(1, 0, n) ** 0.5
+    outL[i0:i0 + n] = np.interp(pos, idx, L) * fade
+    outR[i0:i0 + n] = np.interp(pos, idx, R) * fade
+    outL[i0 + n:] = 0.0
+    outR[i0 + n:] = 0.0
+    return outL, outR
+
+
+def gate_curve(n, t0, step_s, pattern, depth, smooth_ms=4.0):
+    """Compuerta ritmica (trance gate): 1/0 por paso, suavizada."""
+    g = np.ones(n)
+    i = int(t0 * SR)
+    s = step_s * SR
+    k = 0
+    while i < n:
+        j = int(int(t0 * SR) + (k + 1) * s)
+        if not pattern[k % len(pattern)]:
+            g[i:min(j, n)] = 1.0 - depth
+        i = j
+        k += 1
+    return onepole(g, np.exp(-1.0 / (smooth_ms * 0.001 * SR)))
